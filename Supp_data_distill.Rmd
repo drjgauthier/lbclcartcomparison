@@ -1,7 +1,7 @@
 ---
-title: "Comparative analysis of safety and efficacy across three CD19 CAR T-cell products in aggressive B-NHL"
+title: "Reproducible supplement"
 description: |
-  R code and output
+  Reproducible supplement to recreate all tables and figures using R for manuscript: "Gauthier J et al. Comparative analysis of safety and efficacy across three CD19 CAR T-cell products in aggressive B-NHL"
 author:
   - name: Jordan Gauthier, MD
     affiliation: Fred Hutch, University of Washington
@@ -11,6 +11,7 @@ output:
     code_folding: true
     toc: true
     toc_float: true
+    self_contained: false
 ---
 
 ```{r setup, include=FALSE}
@@ -23,7 +24,7 @@ theme_set(theme_bw())
 # load(file = "envfordistill.RData")
 ```
 ## Table 1. Patient and disease characteristics
-```{r,layout="l-body-outset"}
+```{r table 1,layout="l-body-outset"}
 
 df <- read.xlsx("df.xlsx",sheet=1)
 pt_char <- c(
@@ -763,5 +764,11 @@ d <- data.frame(Predict(fit_mi,preleuka_LDH_l,preleuka_ALC_l,fun = plogis)) %>%
   theme = theme(plot.title = element_text(size = 16,face='bold'))
 ) &
   theme(plot.tag = element_text(size=16,face = 'bold'))
+```
+
+## Computational environment
+
+```{r}
+devtools::session_info()
 ```
 
