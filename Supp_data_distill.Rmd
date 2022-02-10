@@ -363,7 +363,6 @@ fig1 + plot_annotation(
 ) &
   theme(plot.tag = element_text(face = 'bold'))
 
-
 # Save to eps
 # cairo_ps("Manuscript/Fig3.eps", width = 12, height = 7)
 # fig1 + plot_annotation(
