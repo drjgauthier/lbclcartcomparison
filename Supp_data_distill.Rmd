@@ -15,201 +15,38 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 library(openxlsx)
 library(gtsummary)
 library(tidyverse)
 library(htmlTable)
+library(tidylog)
+library(skimr)
 theme_set(theme_bw())
 # load(file = "envfordistill.RData")
 ```
-## Table 1. Patient and disease characteristics
-```{r table 1,layout="l-body-outset"}
 
-df <- read.xlsx("df.xlsx",sheet=1)
-pt_char <- c(
-  "product",
-  "age",
-  "sex",
-  "hct_score",
-  "prior_tx",
-  "relapse_pattern",
-  "preleuka_LDH",
-  "preleuka_bulk_s",
-  "preleuka_annarbor",
-  "preleuka_extranodal",
-  "preleuka_ALC",
-  "bridge",
-  "preLD_LDH",
-  "lymph_type1"
-)
-df %>%
-  select(`CAR T-cell product`=product,
-           Age=age,
-           Sex=sex,
-         `HCT-CI`=hct_score,
-         `Lymphoma histology`="lymph_type1",
-         `Number of prior therapies`=prior_tx,
-         `Relapse pattern`=relapse_pattern,
-         LDH=preleuka_LDH,
-         `Largest lesion diameter (cm)`=preleuka_bulk_s,
-         `Ann Arbor Stage`=preleuka_annarbor,
-         `Extranodal disease`=preleuka_extranodal,
-           ALC=preleuka_ALC,
-         `Bridging therapy post-leukapheresis`=bridge,
-         ) %>%
-  mutate(`CAR T-cell product`=fct_relevel(`CAR T-cell product`,"axicel","tisacel","jcar014")) %>%
-  mutate(`CAR T-cell product`=recode_factor(`CAR T-cell product`,`axicel`="axicel",`tisacel`="tisacel",`jcar014`="JCAR014")) %>%
-  tbl_summary(
-    by = `CAR T-cell product`,
-    type = list(all_continuous() ~ "continuous2",
-                `HCT-CI` ~ 'continuous2',
-                `Number of prior therapies` ~ 'continuous2'),
-    statistic = all_continuous() ~ c("{median} ({p25}, {p75})", 
-                                     "{min}, {max}"),
-    missing_text = "Missing data") %>%
-  add_p(simulate.p.value=TRUE) %>% 
-  bold_labels() 
-```
-## Table 2. CRS, ICANS and response after CD19 CAR T-cell therapy
-```{r,layout="l-body-outset"}
-t2a <- df %>%
-  mutate(crs_g3=case_when(
-    crs_g3 == "≥3" ~ 1,
-    crs_g3 == "<3" ~ 0
-  )) %>% 
-  select(
-    `CAR T-cell product` = product,
-    `Grade ≥1 CRS` = crs_g1_d,
-    `Grade ≥2 CRS` = crs_g2_d,
-    `Grade ≥3 CRS` = crs_g3,
-    `Grade ≥1 ICANS` = nt_g1_d,
-    `Grade ≥2 ICANS` = nt_g2_d,
-    `Grade ≥3 ICANS` = nt_g3_d
-  ) %>%
-  mutate(`CAR T-cell product` = fct_relevel(`CAR T-cell product`, "axicel", "tisacel", "jcar014")) %>%
-  mutate(
-    `CAR T-cell product` = recode_factor(
-      `CAR T-cell product`,
-      `axicel` = "axicel",
-      `tisacel` = "tisacel",
-      `jcar014` = "JCAR014"
-    )
-  ) %>%
-  tbl_summary(
-    by = `CAR T-cell product`,
-    # type = list(`CRS grade` ~ 'continuous2',
-    #             `ICANS grade` ~ 'continuous2'),
-    statistic = all_continuous() ~ c("{median} ({p25}, {p75})",
-                                     "{min}, {max}"),missing_text = "Missing data" ) %>%
-  add_p(simulate.p.value = TRUE) %>%
-  bold_labels()
+### Load wrangled dataset and functions
 
-#### Table 2b response ####
-t2b <- df %>%
-  filter(!is.na(bestresp_b)) %>%
-  transmute(
-    `CAR T-cell product`=fct_relevel(product, "axicel", "tisacel", "jcar014"),
-    `Overall response rate (best response)` = as.numeric(bestresp_b),
-    `Complete response rate (best response)` = bestCR_b
-  ) %>% 
-  mutate(`CAR T-cell product` = recode_factor(
-      `CAR T-cell product`,
-      `axicel` = "axicel",
-      `tisacel` = "tisacel",
-      `jcar014` = "JCAR014"
-    )
-  ) %>% 
-  tbl_summary(
-    by = `CAR T-cell product`,
-    # type = list(`CRS grade` ~ 'continuous2',
-    #             `ICANS grade` ~ 'continuous2'),
-    statistic = all_continuous() ~ c("{median} ({p25}, {p75})",
-                                     "{min}, {max}"),missing_text = "Missing data") %>%
-  add_p(simulate.p.value = TRUE) %>%
-  bold_labels() 
-  
+```{r,warning = FALSE}
+df <- read.xlsx("dfs/20220210_df.xlsx",sheet=1)
 
-#### Stack table 2a and 2b ####
-tbl_stack(
-  tbls = list(t2a, t2b),group_header = c("Toxicity","Response"))
-```
-
-## Ordinal logistic regression modeling of outcomes
-
-## Impute missing data for multivariable regression modeling
-
-```{r imputation}
-set.seed(12345)
-df$preleuka_LDH_l <- log10(df$preleuka_LDH)
-df$preleuka_ALC_l <- log10(df$preleuka_ALC)
-df <- df %>% 
-  mutate(product=fct_relevel(product,"axicel","tisacel","jcar014"))
-library(rms)
-dd <- datadist(df)
-options(datadist='dd')
-mi <- aregImpute(formula = ~ product+preleuka_LDH_l+age+hct_score+preleuka_bulk_s+preleuka_ALC_l,
-                 data=df, n.impute = 10, burnin=3, nk=3, type='pmm', pmmtype=1)
-```
-
-## Fit univariate model for CRS (Table S2)
-
-```{r fituniCRS, layout="l-body-outset"}
-fit_crs <- lrm(crs_g_r ~ product,x=T,y=T,data=df)
-options(prType="html")
-print(
-  fit_crs,
-  labels = c("tisacel", "JCAR014"),
-  digits = 2,
-  coefs = T,
-  title = "Univariate ordinal proportional odds logistic regression model for CRS grade"
-)
-options(prType=NULL)
-```
-
-## Fit multivariable model for CRS (Table S3)
-
-```{r fitmultiCRS,layout="l-body-outset"}
-fit_mi <-
-  fit.mult.impute(
-    crs_g_r ~ product + preleuka_LDH_l + preleuka_bulk_s + age + hct_score + preleuka_ALC_l,
-    fitter = lrm,
-    data = df,
-    xtrans = mi,
-    x = T,
-    y = T
-  )
-options(prType="html")
-print(
-  fit_mi,
-  labels = c("tisacel", "JCAR014"),
-  digits = 2,
-  coefs = T,
-  title = "Multivariable ordinal proportional odds logistic regression model for CRS grade"
-)
-options(prType=NULL)
-```
-
-## Check multivariable CRS model calibration (bootstrapped smooth calibration curves)
-
-```{r checkcalCRS, layout="l-body-outset",fig.width=12, fig.height=4}
+# Plot calibration curves for ordinal models with 2 intercepts
 fit_check_ord2 <- function(fit,predictor){
-  print(fit)
-  print(summary(fit))
-  print(AIC(fit))
   par(mfrow=c(1,2))
   plot(rms::calibrate(fit, kint = 1,B=200,group=df$crs_g_r))
   plot(rms::calibrate(fit, kint = 2,B=200,group=df$crs_g_r))
 }
 
-fit_check_ord2(fit_mi)
+# Plot calibration curves for ordinal models with 3 intercepts
+fit_check_ord3 <- function(fit,predictor){
+  par(mfrow=c(1,3))
+  plot(rms::calibrate(fit, kint = 1,B=200,group=df$nt_g_r))
+  plot(rms::calibrate(fit, kint = 2,B=200,group=df$nt_g_r))
+  plot(rms::calibrate(fit, kint = 3,B=200,group=df$nt_g_r))
+}
 
-```
-
-## Build Table 3a. CAR T-cell product type and CRS severity
-
-```{r t3CRS, layout="l-body-outset"}
-#### Sparser function ####
+# Sparser function to extract coefficients and p values from rms fits
 get_model_stats = function(x) {
   cap = capture.output(print(x))
   
@@ -230,6 +67,354 @@ get_model_stats = function(x) {
   )
 }
 
+
+# Impute missing data
+set.seed(12345)
+df$preleuka_LDH_l <- log10(df$preleuka_LDH)
+df$preleuka_ALC_l <- log10(df$preleuka_ALC)
+df <- df %>% 
+  mutate(product=fct_relevel(product,"axicel","tisacel","jcar014"))
+library(rms)
+dd <- datadist(df)
+options(datadist='dd')
+mi <- aregImpute(formula = ~ product+preleuka_LDH_l+age+hct_score+preleuka_bulk_s+preleuka_ALC_l,
+                 data=df, n.impute = 10, burnin=3, nk=3, type='pmm', pmmtype=1)
+```
+
+### Table 1. Patient and disease characteristics
+```{r table 1,layout="l-body-outset"}
+df %>%
+  select(`CAR T-cell product`=product,
+           Age=age,
+           Sex=sex,
+         `HCT-CI`=hct_score,
+         `Lymphoma histology`=lymph_type,
+         `Number of prior therapies`=prior_tx,
+         `Relapse pattern`=relapse_pattern,
+         `LDH (U/L)`=preleuka_LDH,
+         `Largest lesion diameter (cm)`=preleuka_bulk_s,
+         `Ann Arbor Stage`=preleuka_annarbor,
+         `Extranodal disease`=preleuka_extranodal,
+           `ALC (G/L)`=preleuka_ALC,
+         `Bridging therapy post-leukapheresis`=bridge,
+         ) %>%
+  mutate(`CAR T-cell product`=fct_relevel(`CAR T-cell product`,"axicel","tisacel","jcar014")) %>%
+  mutate(`CAR T-cell product`=recode_factor(`CAR T-cell product`,`axicel`="axicel",`tisacel`="tisacel",`jcar014`="JCAR014")) %>%
+  tbl_summary(
+    by = `CAR T-cell product`,
+    type = list(all_continuous() ~ "continuous2",
+                `HCT-CI` ~ 'continuous2',
+                `Number of prior therapies` ~ 'continuous2'),
+    statistic = all_continuous() ~ c("{median} ({p25}, {p75})", 
+                                     "{min}, {max}"),
+    missing_text = "Missing data",
+    sort = all_categorical() ~ "frequency") %>%
+  add_p(list(all_continuous() ~ "kruskal.test",
+             all_categorical() ~ "fisher.test"),
+             simulate.p.value=TRUE) %>% 
+  bold_labels() 
+```
+
+### Table 2. CRS, ICANS and response after CD19 CAR T-cell therapy
+```{r,layout="l-body-outset"}
+t2a <- df %>%
+  mutate(crs_g3 = case_when(crs_g3 == "≥3" ~ 1,
+                            crs_g3 == "<3" ~ 0)) %>%
+  transmute(
+    `CAR T-cell product` = product,
+    `Grade ≥1 CRS` = crs_g1_d,
+    `Grade ≥2 CRS` = crs_g2_d,
+    `Grade ≥3 CRS` = crs_g3,
+    `CRS duration (days)` = CRS_duration,
+    `Grade ≥1 ICANS` = nt_g1_d,
+    `Grade ≥2 ICANS` = nt_g2_d,
+    `Grade ≥3 ICANS` = nt_g3_d,
+    `ICANS duration (days)` = ICANS_duration,
+    `ICANS duration (days)` = ICANS_duration,
+    `Tocilizumab` = ifelse(toci_nb==0,"No","Yes"),
+    `Corticosteroids` = ifelse(steroids_cum_dex_d==0,"No","Yes")
+  ) %>%
+  mutate(`CAR T-cell product` = fct_relevel(`CAR T-cell product`, "axicel", "tisacel", "jcar014")) %>%
+  mutate(
+    `CAR T-cell product` = recode_factor(
+      `CAR T-cell product`,
+      `axicel` = "axicel",
+      `tisacel` = "tisacel",
+      `jcar014` = "JCAR014"
+    )
+  ) %>%
+  tbl_summary(
+    by = `CAR T-cell product`,
+    type = list(`CRS duration (days)` ~ 'continuous2',
+                `ICANS duration (days)` ~ 'continuous2'
+                # `Tocilizumab (number of administrations)` ~ 'continuous2',
+                # `Cumulative corticosteroids dose (mg of dexamethasone)` ~ 'continuous2'
+                ),
+    statistic = all_continuous() ~ c("{median} ({p25}, {p75})",
+                                     "{min}, {max}"),
+    missing = "no"
+  ) %>%
+  add_p(test = list(
+        `Grade ≥1 CRS` ~ "fisher.test",
+        `Grade ≥2 CRS` ~ "fisher.test",
+        `Grade ≥3 CRS` ~ "fisher.test",
+        `Grade ≥1 ICANS` ~ "fisher.test",
+        `Grade ≥2 ICANS` ~ "fisher.test",
+        `Grade ≥3 ICANS` ~ "fisher.test",
+        `CRS duration (days)` ~ "kruskal.test",
+        `ICANS duration (days)` ~ "kruskal.test",
+        `Tocilizumab` ~ "fisher.test",
+        `Corticosteroids` ~ "fisher.test"
+        ),
+        simulate.p.value = TRUE) %>%
+  bold_labels()
+
+#### Table 2b response ####
+t2b <- df %>%
+  filter(!is.na(bestresp_b)) %>%
+  transmute(
+    `CAR T-cell product` = fct_relevel(product, "axicel", "tisacel", "jcar014"),
+    `Overall response rate (best response)` = as.numeric(bestresp_b),
+    `Complete response rate (best response)` = bestCR_b
+  ) %>%
+  mutate(
+    `CAR T-cell product` = recode_factor(
+      `CAR T-cell product`,
+      `axicel` = "axicel",
+      `tisacel` = "tisacel",
+      `jcar014` = "JCAR014"
+    )
+  ) %>%
+  tbl_summary(
+    by = `CAR T-cell product`,
+    # type = list(`CRS grade` ~ 'continuous2',
+    #             `ICANS grade` ~ 'continuous2'),
+    statistic = all_continuous() ~ c("{median} ({p25}, {p75})",
+                                     "{min}, {max}"),
+    missing = "no"
+  ) %>%
+  add_p(test = everything() ~ "fisher.test",
+        simulate.p.value = TRUE) %>%
+  bold_labels() 
+
+#### Stack table 2a and 2b ####
+tbl_stack(
+  tbls = list(t2a, t2b),group_header = c("Toxicity","Response"))
+```
+
+### Table S1. Details of aggressive lymphoma types treated with JCAR014
+
+```{r}
+df %>% 
+  filter(product=="jcar014") %>% 
+  select(`Lymphoma histologies`=lymph_type2) %>% 
+  tbl_summary(
+    # type = list(`CRS grade` ~ 'continuous2',
+    #             `ICANS grade` ~ 'continuous2'),
+    statistic = all_continuous() ~ c("{median} ({p25}, {p75})",
+                                     "{min}, {max}"),missing_text = "Missing data",
+    sort = all_categorical() ~ "frequency")
+```
+
+### Table S2. Time from leukapheresis to CAR T-cell infusion
+
+```{r}
+df %>% 
+  transmute(
+    `CAR T-cell product` = product,
+    `Time from leukapheresis to CAR T-cell infusion` = as.numeric(veintovein)
+  ) %>% 
+  mutate(`CAR T-cell product` = fct_relevel(`CAR T-cell product`, "axicel", "tisacel", "jcar014")) %>%
+  mutate(
+    `CAR T-cell product` = recode_factor(
+      `CAR T-cell product`,
+      `axicel` = "axicel",
+      `tisacel` = "tisacel",
+      `jcar014` = "JCAR014"
+    )
+  ) %>%
+  tbl_summary(
+    by = `CAR T-cell product`,
+    type = `Time from leukapheresis to CAR T-cell infusion` ~ 'continuous2',
+    statistic = all_continuous() ~ c("{median} ({p25}, {p75})",
+                                     "{min}, {max}"),
+    missing_text = "Missing data"
+  ) %>%
+  add_p(test = everything() ~ "kruskal.test",
+        simulate.p.value = TRUE) %>%
+  bold_labels()
+```
+
+### Table S3. Rates of severe infections and cytopenia after CD19 CAR T-cell therapy
+
+```{r}
+df %>% 
+  select(
+    `CAR T-cell product` = product,
+    `Grade ≥3 infection` = day30_sinf,
+    `Grade ≥3 neutropenia` = day30G34neutropenia,
+    `Grade ≥3 thrombocytopenia` = day30G34thrombocytopenia,
+    `Grade ≥3 anemia` = day30G34anemia
+  ) %>% 
+  mutate(`CAR T-cell product` = fct_relevel(`CAR T-cell product`, "axicel", "tisacel", "jcar014")) %>%
+  mutate(
+    `CAR T-cell product` = recode_factor(
+      `CAR T-cell product`,
+      `axicel` = "axicel",
+      `tisacel` = "tisacel",
+      `jcar014` = "JCAR014"
+    )
+  ) %>%
+  tbl_summary(
+    by = `CAR T-cell product`,
+    # type = list(`CRS duration (days)` ~ 'continuous2',
+    #             `ICANS duration (days)` ~ 'continuous2'
+    #             # `Tocilizumab (number of administrations)` ~ 'continuous2',
+    #             # `Cumulative corticosteroids dose (mg of dexamethasone)` ~ 'continuous2'
+    #             ),
+    statistic = all_continuous() ~ c("{median} ({p25}, {p75})",
+                                     "{min}, {max}"),
+    missing_text = "Missing data"
+  ) %>%
+  add_p(test = everything() ~ "fisher.test",
+         simulate.p.value = TRUE) %>%
+  bold_labels()
+```
+
+### Figure 3. CRS and ICANS rates across products
+
+```{r,layout="l-body-outset",fig.width=11, fig.height=6}
+library(patchwork)
+df <- df %>% 
+  mutate(
+    product_m = case_when(
+      product== "axicel" ~ "axicel",
+      product=="tisacel" ~ "tisacel/JCAR014",
+      product=="jcar014" ~ "tisacel/JCAR014"
+    )
+  )
+theme_set(theme_bw())
+#### CRS rates by product ####
+CRS_p <- df %>% 
+  mutate(crs_g=as.character(crs_g),
+         product=fct_relevel(product,"axicel","tisacel","jcar014")) %>% 
+  mutate(product=recode(product,"jcar014"="JCAR014")) %>% 
+  group_by(product) %>%
+  count(crs_g) %>% 
+  mutate(perc = round((n / sum(n)) * 100, 1), labs = paste0(perc, "%")) %>% 
+  ggplot(aes(product, perc, group = product)) +
+  geom_col(aes(fill = crs_g))+
+  geom_text(
+  aes(label = labs),
+  position = position_stack(vjust = 0.5),
+  col = "white",
+  size = 4
+) +
+  scale_fill_manual(
+    name = "CRS grade",
+    values = c("#fc9272", "#fb6a4a", "#ef3b2c", "#cb181d", "#99000d")
+  ) +
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    legend.title = element_text(size = 12),
+    legend.position = "right",
+    legend.text = element_text(size = 10),
+    axis.text.x = element_text(size = 18, color = "black")
+  ) +
+  scale_y_continuous(name = "Percentage")
+
+
+#### ICANS rates by product ####
+ICANS_p <- df %>% 
+  mutate(nt_g=as.character(nt_g),
+         product=fct_relevel(product,"axicel","tisacel","jcar014")) %>% 
+  mutate(product=recode(product,"jcar014"="JCAR014")) %>% 
+  group_by(product) %>%
+  count(nt_g) %>%
+  mutate(perc = round((n / sum(n)) * 100, 1), labs = paste0(perc, "%")) %>%
+  ggplot(aes(product, perc, group = product)) +
+  geom_col(aes(fill = nt_g)) +
+  geom_text(
+    aes(label = labs),
+    position = position_stack(vjust = 0.5),
+    col = "white",
+    size = 4
+  ) +
+  scale_fill_manual(
+    name = "ICANS grade",
+    values = c("#66c2a4", "#41ae76", "#238b45", "#006d2c", "#00441b")
+  ) +
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    legend.title = element_text(size = 12),
+    legend.position = "right",
+    legend.text = element_text(size = 10),
+    axis.text.x = element_text(size = 18, color = "black")
+  ) +
+  scale_y_continuous(name = "Percentage")
+
+fig1 <- CRS_p + ICANS_p
+fig1 + plot_annotation(
+  title = 'Figure 2.',
+  tag_levels = "A",
+  theme = theme(plot.title = element_text(face='bold'))
+) &
+  theme(plot.tag = element_text(face = 'bold'))
+
+
+# Save to eps
+# cairo_ps("Manuscript/Fig3.eps", width = 12, height = 7)
+# fig1 + plot_annotation(
+#   title = 'Figure 3.',
+#   tag_levels = "A",
+#   theme = theme(plot.title = element_text(size = 24,face='bold'))
+# ) &
+#   theme(plot.tag = element_text(size=22,face = 'bold'))
+# dev.off()
+```
+
+### Univariate ordinal logistic regression model for CRS grade
+
+```{r fituniCRS, layout="l-body-outset"}
+fit_crs <- lrm(crs_g_r ~ product,x=T,y=T,data=df)
+options(prType="html")
+print(
+  fit_crs,
+  labels = c("tisacel", "JCAR014"),
+  digits = 2,
+  coefs = T,
+  title = "Univariate ordinal proportional odds logistic regression model for CRS grade"
+)
+options(prType=NULL)
+```
+
+### Multivariable ordinal logistic regression model for CRS grade
+
+```{r fitmultiCRS,layout="l-body-outset",results='asis',fig.width=10, fig.height=6}
+fit_mi <-
+  fit.mult.impute(
+    crs_g_r ~ product + preleuka_LDH_l + preleuka_bulk_s + age + hct_score + preleuka_ALC_l,
+    fitter = lrm,
+    data = df,
+    xtrans = mi,
+    x = T,
+    y = T
+  )
+options(prType="html")
+print(
+  fit_mi,
+  labels = c("tisacel", "JCAR014"),
+  digits = 2,
+  coefs = T
+)
+print(summary(fit_mi,age=c(50,60)),digits = 2)
+print(anova(fit_mi),digits = 2)
+plot(anova(fit_mi))
+fit_check_ord2(fit_mi)
+options(prType=NULL)
+
 #Sparse ORs and 95% CIs from univariate model
 crs_d <- data.frame(summary(fit_crs))
 crs_unadj <- rbind(
@@ -238,7 +423,6 @@ crs_unadj <- rbind(
 )
 colnames(crs_unadj) <- c("unadjusted OR","95% CI")
 rownames(crs_unadj) <- c("Tisacel versus axicel","JCAR014 versus axicel")
-htmlTable(crs_unadj)
 
 #Parse p values from univariate model
 crs_unadjstats_d <- get_model_stats(fit_crs)
@@ -255,18 +439,6 @@ crs_adj <- rbind(
 colnames(crs_adj) <- c("adjusted OR","95% CI")
 rownames(crs_adj) <- c("Tisacel versus axicel","JCAR014 versus axicel")
 
-#### CRS model table ####
-htmlTable(
-  cbind(
-    crs_unadj,
-    crs_unadjstats_d$coefs[3:4, 5],
-    crs_adj,
-    crs_adjstats_d$coefs[3:4, 5]
-  ),
-  rgroup = "CRS severity (peak grade)",
-  n.rgroup = 2
-)
-
 ### Create object to merge tables later
 CRS_t <-
   cbind(crs_unadj,
@@ -275,22 +447,77 @@ CRS_t <-
         crs_adjstats_d$coefs[3:4, 5])
 ```
 
-## Fit univariate model for ICANS
+### Sensitivity analysis: Fit multivariable model for CRS including bridging
+
+```{r fitmultiCRS_bridge,layout="l-body-outset"}
+fit_mi <-
+  fit.mult.impute(
+    crs_g_r ~ product + preleuka_LDH_l + preleuka_bulk_s + age + hct_score + preleuka_ALC_l + bridge,
+    fitter = lrm,
+    data = df,
+    xtrans = mi,
+    x = T,
+    y = T
+  )
+options(prType="html")
+print(
+  fit_mi,
+  labels = c("tisacel", "JCAR014"),
+  digits = 2,
+  coefs = T,
+  title = "Multivariable ordinal proportional odds logistic regression model for CRS grade"
+)
+options(prType=NULL)
+
+#Sparse ORs and 95% CIs from univariate model
+crs_d <- data.frame(summary(fit_crs))
+crs_unadj <- rbind(
+  cbind(round(crs_d[2,4],2),paste(round(crs_d[2,6],2),round(crs_d[2,7],2),sep="-")),
+  cbind(round(crs_d[4,4],2),paste(round(crs_d[4,6],2),round(crs_d[4,7],2),sep="-"))
+)
+colnames(crs_unadj) <- c("unadjusted OR","95% CI")
+rownames(crs_unadj) <- c("Tisacel versus axicel","JCAR014 versus axicel")
+
+#Parse p values from univariate model
+crs_unadjstats_d <- get_model_stats(fit_crs)
+
+#Parse p values from multivariable model
+crs_adjstats_d <- get_model_stats(fit_mi)
+
+#Parse ORs and 95% CI from multivariable model
+d <- data.frame(summary(fit_mi))
+crs_adj <- rbind(
+  cbind(round(d[12,4],2),paste(round(d[12,6],2),round(d[12,7],2),sep = "-")),
+  cbind(round(d[14,4],2),paste(round(d[14,6],2),round(d[14,7],2),sep = "-"))
+)
+colnames(crs_adj) <- c("adjusted OR","95% CI")
+rownames(crs_adj) <- c("Tisacel versus axicel","JCAR014 versus axicel")
+
+### Create object to merge tables later
+CRS_bridge_t <-
+  cbind(crs_unadj,
+        crs_unadjstats_d$coefs[3:4, 5],
+        crs_adj,
+        crs_adjstats_d$coefs[3:4, 5])
+
+```
+
+### Univariate ordinal logistic regression model for ICANS grade
+
 ```{r fitunivICANS, layout="l-body-outset"}
 fit_nt <- lrm(nt_g_r ~ product,x=T,y=T,data=df)
 options(prType="html")
 print(
   fit_nt,
   digits = 2,
-  coefs = T,
-  title = "Univariate ordinal proportional odds logistic regression model for ICANS grade"
+  coefs = T
 )
 options(prType=NULL)
 ```
 
-## Fit multivariable model for ICANS
+### Multivariable proportional odds logistic regression model for ICANS grade
 
-```{r fitmultiICANS, layout="l-body-outset"}
+```{r fitmultiICANS, layout="l-body-outset",results='asis',fig.width=12, fig.height=5}
 fit_mi <-
   fit.mult.impute(
     nt_g_r ~ product + preleuka_LDH_l + preleuka_bulk_s + age + hct_score + preleuka_ALC_l,
@@ -307,29 +534,64 @@ print(
   coefs = T,
   title = "Multivariable ordinal proportional odds logistic regression model for ICANS grade"
 )
-options(prType=NULL)
-```
-
-## Check multivariable ICANS model calibration (bootstrapped smooth calibration curves)
-
-```{r, layout="l-body-outset",fig.width=12, fig.height=5}
-fit_check_ord3 <- function(fit,predictor){
-  print(fit)
-  print(summary(fit))
-  print(AIC(fit))
-  par(mfrow=c(1,3))
-  plot(rms::calibrate(fit, kint = 1,B=200,group=df$nt_g_r))
-  plot(rms::calibrate(fit, kint = 2,B=200,group=df$nt_g_r))
-  plot(rms::calibrate(fit, kint = 3,B=200,group=df$nt_g_r))
-}
+print(summary(fit_mi,age=c(50,60)),digits = 2)
+print(anova(fit_mi),digits = 2)
+plot(anova(fit_mi))
 fit_check_ord3(fit_mi)
+options(prType=NULL)
 
+#Parse ORs and 95%CI from univariate model
+d <- summary(fit_nt)
+d <- data.frame(d)
+nt_unadj <- rbind(
+  cbind(round(d[2,4],2),paste(round(d[2,6],2),round(d[2,7],2),sep="-")),
+  cbind(round(d[4,4],2),paste(round(d[4,6],2),round(d[4,7],2),sep="-"))
+)
+colnames(nt_unadj) <- c("unadjusted OR","95% CI")
+rownames(nt_unadj) <- c("Tisacel versus axicel","JCAR014 versus axicel")
+
+#Parse p values from univariate model
+unadjstats_d <- get_model_stats(fit_nt)
+
+#Parse p values from multivariable model
+adjstats_d <- get_model_stats(fit_mi)
+
+#Parse ORs and 95% CI from multivariable model
+d <- data.frame(summary(fit_mi))
+nt_adj <- rbind(
+  cbind(round(d[12,4],2),paste(round(d[12,6],2),round(d[12,7],2),sep="-")),
+  cbind(round(d[14,4],2),paste(round(d[14,6],2),round(d[14,7],2),sep="-"))
+)
+colnames(nt_adj) <- c("adjusted OR","95% CI")
+rownames(nt_adj) <- c("Tisacel versus axicel","JCAR014 versus axicel")
+
+#Create object to merge later
+NT_t <-
+  cbind(nt_unadj,
+        round(unadjstats_d$coefs[4:5, 5], 4),
+        nt_adj,
+        round(adjstats_d$coefs[4:5, 5], 4))
 ```
 
+### Sensitivity analysis: fit multivariable model for ICANS including bridging therapy
 
-## Build Table 3b. CAR T-cell product type and ICANS severity
-
-```{r t3ICANS, layout="l-body-outset"}
+```{r fitmultiICANS_bridge, layout="l-body-outset"}
+fit_mi <-
+  fit.mult.impute(
+    nt_g_r ~ product + preleuka_LDH_l + preleuka_bulk_s + age + hct_score + preleuka_ALC_l + bridge,
+    fitter = lrm,
+    data = df,
+    xtrans = mi,
+    x=T,
+    y=T
+  )
+options(prType="html")
+print(
+  fit_mi,
+  digits = 2,
+  coefs = T
+)
+options(prType=NULL)
 d <- summary(fit_nt)
 d <- data.frame(d)
 
@@ -340,15 +602,12 @@ nt_unadj <- rbind(
 )
 colnames(nt_unadj) <- c("unadjusted OR","95% CI")
 rownames(nt_unadj) <- c("Tisacel versus axicel","JCAR014 versus axicel")
-htmlTable(nt_unadj)
 
 #Parse p values from univariate model
 unadjstats_d <- get_model_stats(fit_nt)
-unadjstats_d$coefs[4:5,5]
 
 #Parse p values from multivariable model
 adjstats_d <- get_model_stats(fit_mi)
-adjstats_d$coefs[4:5,5]
 
 #Parse ORs and 95% CI from multivariable model
 d <- data.frame(summary(fit_mi))
@@ -358,25 +617,16 @@ nt_adj <- rbind(
 )
 colnames(nt_adj) <- c("adjusted OR","95% CI")
 rownames(nt_adj) <- c("Tisacel versus axicel","JCAR014 versus axicel")
-htmlTable(cbind(
-  nt_unadj,
-  round(unadjstats_d$coefs[4:5, 5], 4),
-  nt_adj,
-  round(adjstats_d$coefs[4:5, 5], 4)
-),
-rgroup = "ICANS severity (peak grade)",
-n.rgroup = 2)
 
 #Create object to merge later
-NT_t <-
+NT_bridge_t <-
   cbind(nt_unadj,
         round(unadjstats_d$coefs[4:5, 5], 4),
         nt_adj,
         round(adjstats_d$coefs[4:5, 5], 4))
-
 ```
 
-## Fit univariate model for CR (best response)
+### Univariate logistic regression model for CR (best response)
 
 ```{r firunivCR}
 fit_resp <- lrm(bestCR_b ~ product,x=T,y=T,data=df)
@@ -384,15 +634,14 @@ options(prType="html")
 print(
   fit_resp,
   digits = 2,
-  coefs = T,
-  title = "Univariate ordinal proportional odds logistic regression model for CR (best response)"
+  coefs = T
 )
 options(prType=NULL)
 ```
 
-## Fit multivariable model for CR (best response)
+### Multivariable logistic regression model for CR (best response)
 
-```{r fitmultiCR}
+```{r fitmultiCR,results='asis',layout="l-body-outset",fig.width=5, fig.height=5}
 fit_mi <-
   fit.mult.impute(
     bestCR_b ~ product + preleuka_LDH_l + preleuka_bulk_s + age + hct_score + preleuka_ALC_l,
@@ -409,23 +658,14 @@ print(
   coefs = T,
   title = "Multivariable ordinal proportional odds logistic regression model for CR (best response)"
 )
+print(summary(fit_mi,age=c(50,60),preleuka_LDH_l=c(2,2.3),preleuka_bulk_s=c(1,2),preleuka_ALC_l=c(2,2.3)),digits = 2)
+print(anova(fit_mi),digits = 2)
+plot(anova(fit_mi))
+plot(calibrate(fit_mi))
 options(prType=NULL)
 
-```
-
-## Check CR model calibration (bootstrapped smooth calibration curves)
-
-```{r,layout="l-body-outset",fig.width=5, fig.height=5}
-plot(calibrate(fit_mi))
-```
-
-
-## Build Table 3c. CAR T-cell product type and CR (best response)
-
-```{r t3c}
 #Parse ORs and 95% CIs from univariate model
 d <- summary(fit_resp)
-str(d)
 d <- data.frame(d)
 resp_unadj <- rbind(
   cbind(round(d[2,4],2),paste(round(d[2,6],2),round(d[2,7],2),sep="-")),
@@ -433,16 +673,12 @@ resp_unadj <- rbind(
 )
 colnames(resp_unadj) <- c("unadjusted OR","95% CI")
 rownames(resp_unadj) <- c("Tisacel versus axicel","JCAR014 versus axicel")
-htmlTable(resp_unadj)
 
 #Parse p values from univariate model
 unadjstats_d <- get_model_stats(fit_resp)
-unadjstats_d$coefs[2:3,5]
-
 
 #Parse p values from multivariable model
 adjstats_d <- get_model_stats(fit_mi)
-adjstats_d$coefs[2:3,5]
 
 #Parse ORs and 95% CI from multivariable model
 d <- data.frame(summary(fit_mi))
@@ -452,16 +688,12 @@ resp_adj <- rbind(
 )
 colnames(resp_adj) <- c("adjusted OR","95% CI")
 rownames(resp_adj) <- c("Tisacel versus axicel","JCAR014 versus axicel")
-htmlTable(resp_adj)
-
-#### ORR model table ####
-htmlTable(cbind(resp_unadj,unadjstats_d$coefs[2:3,5],resp_adj,round(adjstats_d$coefs[2:3,5],3)))
 
 #Create object to merge later
 CR_t <- cbind(resp_unadj,unadjstats_d$coefs[2:3,5],resp_adj,adjstats_d$coefs[2:3,5])
 ```
 
-## Table 3 (merge Table 3a, 3b, 3c)
+### Table 3. CAR T-cell product type and outcome prediction
 
 ```{r t3}
 rbind(CRS_t, NT_t, CR_t) %>%
@@ -473,16 +705,73 @@ rbind(CRS_t, NT_t, CR_t) %>%
   )
 ```
 
-## Analyses of CAR T-cell product effect modifiers for CRS severity (Table S9)
+### Table S4. Sensitivity analysis including bridging therapy in addition to the minimal adjustment set of covariates
 
-```{r effmodCRS}
+```{r tS4}
+fit_mi <-
+  fit.mult.impute(
+    bestCR_b ~ product + preleuka_LDH_l + preleuka_bulk_s + age + hct_score + preleuka_ALC_l + bridge,
+    fitter = lrm,
+    data = df,
+    xtrans = mi,
+    x=T,
+    y=T
+  )
+options(prType="html")
+print(
+  fit_mi,
+  digits = 2,
+  coefs = T
+)
+options(prType=NULL)
+#Parse ORs and 95% CIs from univariate model
+d <- summary(fit_resp)
+str(d)
+d <- data.frame(d)
+resp_unadj <- rbind(
+  cbind(round(d[2,4],2),paste(round(d[2,6],2),round(d[2,7],2),sep="-")),
+  cbind(round(d[4,4],2),paste(round(d[4,6],2),round(d[4,7],2),sep="-"))
+)
+colnames(resp_unadj) <- c("unadjusted OR","95% CI")
+rownames(resp_unadj) <- c("Tisacel versus axicel","JCAR014 versus axicel")
+
+#Parse p values from univariate model
+unadjstats_d <- get_model_stats(fit_resp)
+
+#Parse p values from multivariable model
+adjstats_d <- get_model_stats(fit_mi)
+
+#Parse ORs and 95% CI from multivariable model
+d <- data.frame(summary(fit_mi))
+resp_adj <- rbind(
+  cbind(round(d[12,4],2),paste(round(d[12,6],2),round(d[12,7],2),sep="-")),
+  cbind(round(d[14,4],2),paste(round(d[14,6],2),round(d[14,7],2),sep="-"))
+)
+colnames(resp_adj) <- c("adjusted OR","95% CI")
+rownames(resp_adj) <- c("Tisacel versus axicel","JCAR014 versus axicel")
+
+CR_bridge_t <- cbind(resp_unadj,unadjstats_d$coefs[2:3,5],resp_adj,adjstats_d$coefs[2:3,5])
+
+#Build final table
+rbind(CRS_bridge_t, NT_bridge_t, CR_bridge_t) %>%
+  addHtmlTableStyle(pos.caption = "bottom") %>%
+  htmlTable(
+    rgroup = c("CRS grade*", "ICANS grade*", "CR (Best Response)^"),
+    n.rgroup = c(2, 2, 2),
+    caption = "*From a multivariable proportional odds logistic regression model or ^logistic regression model including the following variables: CAR T-cell product type, preleukapheresis LDH, preleukapheresis largest lesion diameter, age, HCT-CI, preleukapheresis ALC, bridging therapy post leukapheresis. P values per the Wald test."
+  )
+```
+
+### Multivariable ordinal logistic regression model for CRS grade including interaction effects
+
+```{r effmodCRS,results='asis',layout="l-body-outset",fig.width=8, fig.height=6}
 #Merge tisacel and JCAR014
 df <- df %>% 
   mutate(product_s=ifelse(product=="axicel","axicel","tisacel/JCAR014"))
 dd <- datadist(df)
 options(datadist='dd')
 
-#### CRS prediction with interaction terms
+#### Refit model for CRS with interaction terms
 fit_mi <-
   fit.mult.impute(
     crs_g_r ~ product_s*preleuka_LDH_l + product_s*preleuka_bulk_s + product_s*age + product_s*hct_score + product_s*preleuka_ALC_l,
@@ -496,21 +785,17 @@ options(prType="html")
 print(
   fit_mi,
   digits = 2,
-  coefs = T,
-  title = "Ordinal proportional odds logistic regression model for CRS grade including interaction effects"
+  coefs = T
 )
 print(anova(fit_mi))
 plot(anova(fit_mi))
-```
-
-## Recheck calibration of CRS model including interaction terms
-```{r, layout="l-body-outset",fig.width=12, fig.height=6}
 fit_check_ord2(fit_mi)
+options(prType=NULL)
 ```
 
-## Analyses of CAR T-cell product effect modifiers for ICANS severity (Table S10)
+### Multivariable ordinal logistic regression model for ICANS grade including interaction terms
 
-```{r effmodICANS}
+```{r effmodICANS,results='asis',fig.width=12, fig.height=6}
 fit_mi <-
   fit.mult.impute(
     nt_g_r ~ product_s*preleuka_LDH_l + product_s*preleuka_bulk_s + product_s*age + product_s*hct_score + product_s*preleuka_ALC_l,
@@ -523,130 +808,17 @@ options(prType="html")
 print(
   fit_mi,
   digits = 2,
-  coefs = T,
-  title = "Ordinal proportional odds logistic regression model for ICANS grade including interaction terms"
+  coefs = T
 )
-# options(prType=NULL)
-
-#Sparse OR for age per 10-year increment
-# summary(fit_mi,age=c(20,30),product_s="axicel")
-# summary(fit_mi,age=c(20,30),product_s="tisacel/jcar014")
-# 
-# #Sparse OR for LDH per 100 U/L increment
-# summary(fit_mi,preleuka_LDH_l=c(2,3),product_s="axicel")
-# summary(fit_mi,preleuka_LDH_l=c(2,3),product_s="tisacel/jcar014")
-```
-
-## Recheck calibration of ICANS model including interaction terms
-
-```{r, layout="l-body-outset",fig.width=12, fig.height=5}
+print(anova(fit_mi))
+plot(anova(fit_mi))
 fit_check_ord3(fit_mi)
+options(prType=NULL)
 ```
 
-## Figure 3a.  ICANS severity risk as a function of age and CAR T-cell product type
+## Multivariable logistic regression model for CR including interaction terms
 
-```{r ageprobICANS}
-a <- data.frame(Predict(fit_mi,age,product_s,fun = plogis,
-                        kint = 1))
-b <- data.frame(Predict(fit_mi,age,product_s,fun = plogis,
-                        kint = 2))
-c <- data.frame(Predict(fit_mi,age,product_s,fun = plogis,
-                        kint = 3))
-# cairo_ps("Manuscript/Fig3.eps", width = 8, height = 4)
-a %>%
-  full_join(b, by = c("age","product_s")) %>%
-  full_join(c, by = c("age","product_s")) %>% 
-  pivot_longer(
-    col = c(yhat.x, yhat.y, yhat),
-    names_to = "prob_type",
-    values_to = "prob"
-  ) %>% 
-  mutate(prob_type=fct_relevel(prob_type,"yhat.x","yhat.y","yhat")) %>% 
-  ggplot()+
-  geom_line(aes(x=age,y=prob,col=prob_type)) +
-  geom_ribbon(aes(x=age,ymin=lower.x, ymax=upper.x),fill="green",alpha=0.10)+
-  geom_ribbon(aes(x=age,ymin=lower.y, ymax=upper.y),fill="blue",alpha=0.10)+
-  geom_ribbon(aes(x=age,ymin=lower, ymax=upper),fill="red",alpha=0.10)+
-  scale_color_manual(labels = c("≥ Grade 1 ICANS","≥ Grade 2 ICANS","≥ Grade 3 ICANS"),values=c("green","blue","red"))+
-  scale_x_continuous(name="Age")+
-  scale_y_continuous(name = "Probability")+
-  facet_wrap(~product_s)+
-  theme_bw()+
-  theme(legend.title = element_blank(),title = element_text(size = 14,face='bold'))+
-  ggtitle("Figure 3.")
-
-#Create object to merge later
-p3a <- a %>%
-  full_join(b, by = c("age","product_s")) %>%
-  full_join(c, by = c("age","product_s")) %>% 
-  pivot_longer(
-    col = c(yhat.x, yhat.y, yhat),
-    names_to = "prob_type",
-    values_to = "prob"
-  ) %>% 
-  mutate(prob_type=fct_relevel(prob_type,"yhat.x","yhat.y","yhat")) %>% 
-  ggplot()+
-  geom_line(aes(x=age,y=prob,col=prob_type)) +
-  geom_ribbon(aes(x=age,ymin=lower.x, ymax=upper.x),fill="green",alpha=0.10)+
-  geom_ribbon(aes(x=age,ymin=lower.y, ymax=upper.y),fill="blue",alpha=0.10)+
-  geom_ribbon(aes(x=age,ymin=lower, ymax=upper),fill="red",alpha=0.10)+
-  scale_color_manual(labels = c("≥ Grade 1 ICANS","≥ Grade 2 ICANS","≥ Grade 3 ICANS"),values=c("green","blue","red"))+
-  scale_x_continuous(name="Age")+
-  scale_y_continuous(name = "Probability of ICANS")+
-  facet_wrap(~product_s)+
-  theme_bw()+
-  theme(legend.title = element_blank(),title = element_text(size = 12,face='bold'))
-
-```
-## Figure 3b. ICANS severity risk as a function of preleukapheresis LDH and CAR T-cell product type
-```{r ldhprobICANS}
-a <- data.frame(Predict(fit_mi,preleuka_LDH_l,product_s,fun = plogis,
-                        kint = 1))
-b <- data.frame(Predict(fit_mi,preleuka_LDH_l,product_s,fun = plogis,
-                        kint = 2))
-c <- data.frame(Predict(fit_mi,preleuka_LDH_l,product_s,fun = plogis,
-                        kint = 3))
-# cairo_ps("Manuscript/Fig3.eps", width = 8, height = 4)
-ldh_breaks <- round(c(10^2.1,10^2.3,10^2.5,10^2.7,10^2.9),0)
-
-p3b <- a %>%
-  full_join(b, by = c("preleuka_LDH_l","product_s")) %>%
-  full_join(c, by = c("preleuka_LDH_l","product_s")) %>% 
-  pivot_longer(
-    col = c(yhat.x, yhat.y, yhat),
-    names_to = "prob_type",
-    values_to = "prob"
-  ) %>% 
-  mutate(prob_type=fct_relevel(prob_type,"yhat.x","yhat.y","yhat")) %>% 
-  ggplot()+
-  geom_line(aes(x=preleuka_LDH_l,y=prob,col=prob_type)) +
-  geom_ribbon(aes(x=preleuka_LDH_l,ymin=lower.x, ymax=upper.x),fill="green",alpha=0.10)+
-  geom_ribbon(aes(x=preleuka_LDH_l,ymin=lower.y, ymax=upper.y),fill="blue",alpha=0.10)+
-  geom_ribbon(aes(x=preleuka_LDH_l,ymin=lower, ymax=upper),fill="red",alpha=0.10)+
-  scale_color_manual(labels = c("≥ Grade 1 ICANS","≥ Grade 2 ICANS","≥ Grade 3 ICANS"),values=c("green","blue","red"))+
-  scale_x_continuous(name="Preleukapheresis LDH (U/L)",labels = ldh_breaks)+
-  scale_y_continuous(name = "Probability of ICANS")+
-  facet_wrap(~product_s)+
-  theme_bw() +
-  theme(legend.title = element_blank(),title = element_text(size = 12,face='bold'))
-```
-
-## Merge Figures 3a and 3b
-
-```{r fig3,layout="l-body-outset",fig.width=7, fig.height=6}
-library(patchwork)
-p3a / p3b + plot_annotation(
-  title = 'Figure 3.',
-  tag_levels = "A",
-  theme = theme(plot.title = element_text(size = 16,face='bold'))
-)
-```
-
-
-## Analyses of CAR T-cell product effect modifiers for CR (best response)
-```{r effmodCR}
-
-#### CR prediction with interaction terms ####
+```{r effmodCR,layout="l-body-outset",fig.width=8, fig.height=8}
 fit_mi <-
   fit.mult.impute(
     bestCR_b ~ product_s * preleuka_ALC_l + product_s * preleuka_bulk_s + product_s *
@@ -660,40 +832,20 @@ options(prType="html")
 print(
   fit_mi,
   digits = 2,
-  coefs = T,
-  title = "Ordinal proportional odds logistic regression model for ICANS grade including interaction terms"
+  coefs = T
 )
 # options(prType=NULL)
-
-```
-
-## Recheck calibration of CR model including interaction terms
-
-```{r,layout="l-body-outset",fig.width=5, fig.height=5}
+print(anova(fit_mi))
+plot(anova(fit_mi))
 plot(calibrate(fit_mi))
+options(prType=NULL)
 ```
 
-## Figure 4a. CR probability as a function of preleukapheresis LDH and CAR T-cell product type
+## Figure 4. The efficacy of distinct CAR T-cell products is differentially impacted by preleukapheresis ALC
 
-```{r}
-ldh_breaks <- round(c(10^2.1,10^2.3,10^2.5,10^2.7,10^2.9),0)
-a <- data.frame(Predict(fit_mi,preleuka_LDH_l,product_s,fun = plogis)) %>% 
-  mutate(product_s=recode(product_s,`axicel`="axicel",`tisacel/jcar014`="tisacel/JCAR014")) %>% 
-  ggplot() +
-  geom_line(aes(x=preleuka_LDH_l,y=yhat,col=product_s)) +
-  geom_ribbon(aes(x=preleuka_LDH_l,ymin=lower, ymax=upper,fill=product_s),alpha=0.10)+
-  labs(x = "Preleukapheresis LDH (U/L)",
-       y = "Probability of CR")+
-  scale_x_continuous(labels = ldh_breaks)+
-    theme_bw() +
-  theme(legend.title = element_blank())
-
-```
-
-## Figure 4b. CR probability as a function of preleukapheresis ALC and CAR T-cell product type
-```{r}
+```{r,layout="l-body-outset",fig.width=10, fig.height=8}
 alc_breaks <- round(c(10^-.5,10^-.25,10^0,10^.25),2)
-b <- data.frame(Predict(fit_mi,preleuka_ALC_l,product_s,fun = plogis)) %>%
+data.frame(Predict(fit_mi,preleuka_ALC_l,product_s,fun = plogis)) %>%
   mutate(product_s=recode(product_s,`axicel`="axicel",`tisacel/jcar014`="tisacel/JCAR014")) %>% 
   ggplot() +
   geom_line(aes(x=preleuka_ALC_l,y=yhat,col=product_s)) +
@@ -701,69 +853,25 @@ b <- data.frame(Predict(fit_mi,preleuka_ALC_l,product_s,fun = plogis)) %>%
   labs(x = "Preleukapheresis ALC (G/L)",
        y = "Probability of CR")+
   scale_x_continuous(labels = alc_breaks,breaks = c(-.5,-.25,0,.25))+
+  ggtitle("Figure 4.")+
   theme_bw() +
-  theme(legend.title = element_blank())
-```
+  theme(title = element_text(size=16,face="bold"),legend.title=element_blank())
 
-## Figure 4c. LDH x ALC in axicel patients
+# Save to eps
+# cairo_ps("Manuscript/Fig 4.eps", width = 9, height = 8)
+# data.frame(Predict(fit_mi,preleuka_ALC_l,product_s,fun = plogis)) %>%
+#   mutate(product_s=recode(product_s,`axicel`="axicel",`tisacel/jcar014`="tisacel/JCAR014")) %>% 
+#   ggplot() +
+#   geom_line(aes(x=preleuka_ALC_l,y=yhat,col=product_s)) +
+#   geom_ribbon(aes(x=preleuka_ALC_l,ymin=lower, ymax=upper,fill=product_s),alpha=0.10)+
+#   labs(x = "Preleukapheresis ALC (G/L)",
+#        y = "Probability of CR")+
+#   scale_x_continuous(labels = alc_breaks,breaks = c(-.5,-.25,0,.25))+
+#   ggtitle("Figure 4.")+
+#   theme_bw() +
+#   theme(plot.title = element_text(size=16,face="bold"),legend.title=element_blank())
+# dev.off()
 
-```{r}
-#Axicel
-dd$limits["Adjust to","product_s"] <- "axicel"
-fit_mi <-
-  fit.mult.impute(
-    bestCR_b ~ product_s * preleuka_ALC_l + product_s * preleuka_bulk_s + product_s *
-      age + product_s * hct_score + product_s * preleuka_LDH_l,
-    fitter = lrm,
-    data = df,
-    xtrans = mi,
-    x=T,y=T
-  )
-c <- data.frame(Predict(fit_mi,preleuka_LDH_l,preleuka_ALC_l,fun = plogis)) %>%
-  ggplot() +
-  geom_contour_filled(aes(preleuka_LDH_l, preleuka_ALC_l, z = yhat)) +
-  labs(title = "Axicel",
-       x = "Preleukapheresis LDH",
-       y = "Preleukapheresis ALC",
-       fill="Probability of CR") +
-  scale_x_continuous(labels = ldh_breaks)+
-  scale_y_continuous(labels = alc_breaks,breaks = c(-.5,-.25,0,.25))
-```
-
-## Figure 4d. ALC x ALC in tisacel/JCAR014 patients
-
-```{r}
-dd$limits["Adjust to","product_s"] <- "tisacel/JCAR014"
-fit_mi <-
-  fit.mult.impute(
-    bestCR_b ~ product_s * preleuka_ALC_l + product_s * preleuka_bulk_s + product_s *
-      age + product_s * hct_score + product_s * preleuka_LDH_l,
-    fitter = lrm,
-    data = df,
-    xtrans = mi,
-    x=T,y=T
-  )
-d <- data.frame(Predict(fit_mi,preleuka_LDH_l,preleuka_ALC_l,fun = plogis)) %>%
-  ggplot() +
-  geom_contour_filled(aes(preleuka_LDH_l, preleuka_ALC_l, z = yhat)) +
-  labs(title = "Tisacel/JCAR014",
-       x = "Preleukapheresis LDH",
-       y = "Preleukapheresis ALC",
-       fill="Probability of CR") +
-  scale_x_continuous(labels = ldh_breaks)+
-  scale_y_continuous(labels = alc_breaks,breaks = c(-.5,-.25,0,.25))
-```
-
-## Figure 4. Multivariable modeling of the impact of CAR T cell product type, preleukapheresis LDH and ALC on the probability of CR accounting for interaction effects
-
-```{r,layout="l-body-outset",fig.width=10, fig.height=8}
-
-(a+b)/(c + d) + plot_annotation(
-  title = 'Figure 4.',
-  tag_levels = "A",
-  theme = theme(plot.title = element_text(size = 16,face='bold'))
-) &
-  theme(plot.tag = element_text(size=16,face = 'bold'))
 ```
 
 ## Computational environment
