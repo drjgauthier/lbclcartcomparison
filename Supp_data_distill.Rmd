@@ -20,16 +20,15 @@ library(openxlsx)
 library(gtsummary)
 library(tidyverse)
 library(htmlTable)
-library(tidylog)
 library(skimr)
+library(patchwork)
 theme_set(theme_bw())
-# load(file = "envfordistill.RData")
 ```
 
 ### Load wrangled dataset and functions
 
 ```{r,warning = FALSE}
-df <- read.xlsx("dfs/20220210_df.xlsx",sheet=1)
+df <- read.xlsx("dfs/20220217_df.xlsx",sheet=1)
 
 # Plot calibration curves for ordinal models with 2 intercepts
 fit_check_ord2 <- function(fit,predictor){
@@ -284,7 +283,6 @@ df %>%
 ### Figure 3. CRS and ICANS rates across products
 
 ```{r,layout="l-body-outset",fig.width=11, fig.height=6}
-library(patchwork)
 df <- df %>% 
   mutate(
     product_m = case_when(
