@@ -1434,8 +1434,8 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
   </script>
 
   <!--/radix_placeholder_distill-->
-  <script src="Supp_data_distill_files/header-attrs-2.8/header-attrs.js"></script>
-  <script src="Supp_data_distill_files/jquery-1.11.3/jquery.min.js"></script>
+  <script src="Supp_data_distill_files/header-attrs-2.13/header-attrs.js"></script>
+  <script src="Supp_data_distill_files/jquery-3.6.0/jquery-3.6.0.min.js"></script>
   <script src="Supp_data_distill_files/popper-2.6.0/popper.min.js"></script>
   <link href="Supp_data_distill_files/tippy-6.2.7/tippy.css" rel="stylesheet" />
   <link href="Supp_data_distill_files/tippy-6.2.7/tippy-light-border.css" rel="stylesheet" />
@@ -1468,7 +1468,10 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
 <h1>Reproducible supplement</h1>
 <!--radix_placeholder_categories-->
 <!--/radix_placeholder_categories-->
-<p><p>Reproducible supplement to recreate all tables and figures using R for manuscript: “Gauthier J et al. Comparative analysis of safety and efficacy across three CD19 CAR T-cell products in aggressive B-NHL”</p></p>
+<p><p>Reproducible supplement to recreate all tables and figures using R
+for manuscript: “Gauthier J et al. Comparative analysis of safety and
+efficacy across three CD19 CAR T-cell products in aggressive
+B-NHL”</p></p>
 </div>
 
 <div class="d-byline">
@@ -1482,42 +1485,125 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
 <nav class="l-text toc figcaption" id="TOC">
 <h3>Contents</h3>
 <ul>
-<li><a href="#load-wrangled-dataset-and-define-key-functions">Load wrangled dataset and define key functions</a></li>
-<li><a href="#table-1.-patient-and-disease-characteristics">Table 1. Patient and disease characteristics</a></li>
-<li><a href="#table-2.-crs-icans-and-response-after-cd19-car-t-cell-therapy">Table 2. CRS, ICANS and response after CD19 CAR T-cell therapy</a></li>
-<li><a href="#table-s1.-details-of-aggressive-lymphoma-types-treated-with-jcar014">Table S1. Details of aggressive lymphoma types treated with JCAR014</a></li>
-<li><a href="#table-s2.-time-from-leukapheresis-to-car-t-cell-infusion">Table S2. Time from leukapheresis to CAR T-cell infusion</a></li>
-<li><a href="#table-s3.-rates-of-severe-infections-and-cytopenia-after-cd19-car-t-cell-therapy">Table S3. Rates of severe infections and cytopenia after CD19 CAR T-cell therapy</a></li>
-<li><a href="#figure-2.-crs-and-icans-rates-across-products">Figure 2. CRS and ICANS rates across products</a></li>
-<li><a href="#univariate-and-multivariable-ordinal-logistic-regression-model-for-crs-grade">Univariate and multivariable ordinal logistic regression model for CRS grade</a></li>
-<li><a href="#sensitivity-analysis-univariate-and-multivariable-ordinal-logistic-regression-model-for-crs-grade-excluding-jcar014-patients">Sensitivity analysis: univariate and multivariable ordinal logistic regression model for CRS grade excluding JCAR014 patients</a></li>
-<li><a href="#sensitivity-analysis-multivariable-ordinal-logistic-regression-model-for-crs-including-bridging">Sensitivity analysis: multivariable ordinal logistic regression model for CRS including bridging</a></li>
-<li><a href="#sensitivity-analysis-multivariable-ordinal-logistic-regression-model-for-crs-including-preld-alc-instead-of-preleukapheresis-alc">Sensitivity analysis: multivariable ordinal logistic regression model for CRS including preLD ALC instead of preleukapheresis ALC</a></li>
-<li><a href="#univariate-and-multivariable-proportional-odds-logistic-regression-model-for-icans-grade">Univariate and multivariable proportional odds logistic regression model for ICANS grade</a></li>
-<li><a href="#sensitivity-analysis-univariate-and-multivariable-proportional-odds-logistic-regression-model-for-icans-grade-excluding-jcar014-patients">Sensitivity analysis: univariate and multivariable proportional odds logistic regression model for ICANS grade excluding JCAR014 patients</a></li>
-<li><a href="#sensitivity-analysis-fit-multivariable-model-for-icans-including-bridging-therapy">Sensitivity analysis: fit multivariable model for ICANS including bridging therapy</a></li>
-<li><a href="#sensitivity-analysis-fit-multivariable-model-for-icans-including-preld-alc-instead-of-preleukapheresis-alc">Sensitivity analysis: fit multivariable model for ICANS including preLD ALC instead of preleukapheresis ALC</a></li>
-<li><a href="#univariate-and-multivariable-logistic-regression-model-for-cr-best-response-by-pet-or-ct">Univariate and multivariable logistic regression model for CR (best response by PET or CT)</a></li>
-<li><a href="#figure-3.-forest-plot-of-predictors-of-complete-response-after-cd19-car-t-cell-therapy">Figure 3. Forest plot of predictors of complete response after CD19 CAR T-cell therapy</a></li>
-<li><a href="#sensitivity-analysis-univariate-and-multivariable-logistic-regression-for-cr-best-response-excluding-jcar014">Sensitivity analysis: univariate and multivariable logistic regression for CR (best response) excluding JCAR014</a></li>
-<li><a href="#sensitivity-analysis-univariate-and-multivariable-logistic-regression-for-cr-best-response-including-bridging-therapy">Sensitivity analysis: univariate and multivariable logistic regression for CR (best response) including bridging therapy</a></li>
-<li><a href="#sensitivity-analysis-univariate-and-multivariable-logistic-regression-for-cr-best-response-including-preld-alc-instead-of-preleukapheresis-alc">Sensitivity analysis: univariate and multivariable logistic regression for CR (best response) including preLD ALC instead of preleukapheresis ALC</a></li>
-<li><a href="#sensitivity-analysis-univariate-and-multivariable-logistic-regression-model-for-orr-best-response---ct-criteria-only">Sensitivity analysis: univariate and multivariable logistic regression model for ORR (best response - CT criteria only)</a></li>
-<li><a href="#sensitivity-analysis-univariate-and-multivariable-logistic-regression-model-for-orr-best-response---pet-criteria-only">Sensitivity analysis: univariate and multivariable logistic regression model for ORR (best response - PET criteria only)</a></li>
-<li><a href="#table-3.-car-t-cell-product-type-and-outcome-prediction">Table 3. CAR T-cell product type and outcome prediction</a></li>
-<li><a href="#table-s4.-comparison-of-preleukapheresis-and-prelymphodepletion-tumor-burden-and-alc">Table S4. Comparison of preleukapheresis and prelymphodepletion tumor burden and ALC</a></li>
-<li><a href="#table-s5.-sensitivity-analysis-including-bridging-therapy-in-addition-to-the-minimal-adjustment-set-of-covariates">Table S5. Sensitivity analysis including bridging therapy in addition to the minimal adjustment set of covariates</a></li>
-<li><a href="#table-s6.-sensitivity-analysis-excluding-jcar014-patients">Table S6. Sensitivity analysis excluding JCAR014 patients</a></li>
-<li><a href="#table-s7.-sensitivity-analysis-including-prelymphodepletion-alc-instead-of-preleukapheresis-alc">Table S7. Sensitivity analysis including prelymphodepletion ALC instead of preleukapheresis ALC</a></li>
-<li><a href="#multivariable-ordinal-logistic-regression-model-for-crs-grade-including-interaction-effects">Multivariable ordinal logistic regression model for CRS grade including interaction effects</a></li>
-<li><a href="#multivariable-ordinal-logistic-regression-model-for-icans-grade-including-interaction-terms">Multivariable ordinal logistic regression model for ICANS grade including interaction terms</a></li>
-<li><a href="#multivariable-logistic-regression-model-for-cr-including-interaction-terms">Multivariable logistic regression model for CR including interaction terms</a></li>
-<li><a href="#figure-4.-the-efficacy-of-distinct-car-t-cell-products-is-differentially-impacted-by-preleukapheresis-alc">Figure 4. The efficacy of distinct CAR T-cell products is differentially impacted by preleukapheresis ALC</a></li>
-<li><a href="#computational-environment">Computational environment</a></li>
+<li><a href="#load-wrangled-dataset-and-define-key-functions">Load
+wrangled dataset and define key functions</a></li>
+<li><a href="#table-1.-patient-and-disease-characteristics">Table 1.
+Patient and disease characteristics</a></li>
+<li><a
+href="#table-2.-crs-icans-and-response-after-cd19-car-t-cell-therapy">Table
+2. CRS, ICANS and response after CD19 CAR T-cell therapy</a></li>
+<li><a
+href="#table-s1.-details-of-aggressive-lymphoma-types-treated-with-jcar014">Table
+S1. Details of aggressive lymphoma types treated with JCAR014</a></li>
+<li><a
+href="#table-s2.-time-from-leukapheresis-to-car-t-cell-infusion">Table
+S2. Time from leukapheresis to CAR T-cell infusion</a></li>
+<li><a
+href="#table-s3.-rates-of-severe-infections-and-cytopenia-after-cd19-car-t-cell-therapy">Table
+S3. Rates of severe infections and cytopenia after CD19 CAR T-cell
+therapy</a></li>
+<li><a href="#figure-2.-crs-and-icans-rates-across-products">Figure 2.
+CRS and ICANS rates across products</a></li>
+<li><a
+href="#univariate-and-multivariable-ordinal-logistic-regression-model-for-crs-grade">Univariate
+and multivariable ordinal logistic regression model for CRS
+grade</a></li>
+<li><a
+href="#sensitivity-analysis-univariate-and-multivariable-ordinal-logistic-regression-model-for-crs-grade-excluding-jcar014-patients">Sensitivity
+analysis: univariate and multivariable ordinal logistic regression model
+for CRS grade excluding JCAR014 patients</a></li>
+<li><a
+href="#sensitivity-analysis-multivariable-ordinal-logistic-regression-model-for-crs-including-bridging">Sensitivity
+analysis: multivariable ordinal logistic regression model for CRS
+including bridging</a></li>
+<li><a
+href="#sensitivity-analysis-multivariable-ordinal-logistic-regression-model-for-crs-including-preld-alc-instead-of-preleukapheresis-alc">Sensitivity
+analysis: multivariable ordinal logistic regression model for CRS
+including preLD ALC instead of preleukapheresis ALC</a></li>
+<li><a
+href="#univariate-and-multivariable-proportional-odds-logistic-regression-model-for-icans-grade">Univariate
+and multivariable proportional odds logistic regression model for ICANS
+grade</a></li>
+<li><a
+href="#sensitivity-analysis-univariate-and-multivariable-proportional-odds-logistic-regression-model-for-icans-grade-excluding-jcar014-patients">Sensitivity
+analysis: univariate and multivariable proportional odds logistic
+regression model for ICANS grade excluding JCAR014 patients</a></li>
+<li><a
+href="#sensitivity-analysis-fit-multivariable-model-for-icans-including-bridging-therapy">Sensitivity
+analysis: fit multivariable model for ICANS including bridging
+therapy</a></li>
+<li><a
+href="#sensitivity-analysis-fit-multivariable-model-for-icans-including-preld-alc-instead-of-preleukapheresis-alc">Sensitivity
+analysis: fit multivariable model for ICANS including preLD ALC instead
+of preleukapheresis ALC</a></li>
+<li><a
+href="#univariate-and-multivariable-logistic-regression-model-for-cr-best-response-by-pet-or-ct">Univariate
+and multivariable logistic regression model for CR (best response by PET
+or CT)</a></li>
+<li><a
+href="#figure-3.-forest-plot-of-predictors-of-complete-response-after-cd19-car-t-cell-therapy">Figure
+3. Forest plot of predictors of complete response after CD19 CAR T-cell
+therapy</a></li>
+<li><a
+href="#sensitivity-analysis-univariate-and-multivariable-logistic-regression-for-cr-best-response-excluding-jcar014">Sensitivity
+analysis: univariate and multivariable logistic regression for CR (best
+response) excluding JCAR014</a></li>
+<li><a
+href="#sensitivity-analysis-univariate-and-multivariable-logistic-regression-for-cr-best-response-including-bridging-therapy">Sensitivity
+analysis: univariate and multivariable logistic regression for CR (best
+response) including bridging therapy</a></li>
+<li><a
+href="#sensitivity-analysis-univariate-and-multivariable-logistic-regression-for-cr-best-response-including-preld-alc-instead-of-preleukapheresis-alc">Sensitivity
+analysis: univariate and multivariable logistic regression for CR (best
+response) including preLD ALC instead of preleukapheresis ALC</a></li>
+<li><a
+href="#sensitivity-analysis-univariate-and-multivariable-logistic-regression-model-for-orr-best-response---ct-criteria-only">Sensitivity
+analysis: univariate and multivariable logistic regression model for ORR
+(best response - CT criteria only)</a></li>
+<li><a
+href="#sensitivity-analysis-univariate-and-multivariable-logistic-regression-model-for-orr-best-response---pet-criteria-only">Sensitivity
+analysis: univariate and multivariable logistic regression model for ORR
+(best response - PET criteria only)</a></li>
+<li><a
+href="#table-3.-car-t-cell-product-type-and-outcome-prediction">Table 3.
+CAR T-cell product type and outcome prediction</a></li>
+<li><a
+href="#table-s4.-comparison-of-preleukapheresis-and-prelymphodepletion-tumor-burden-and-alc">Table
+S4. Comparison of preleukapheresis and prelymphodepletion tumor burden
+and ALC</a></li>
+<li><a
+href="#table-s5.-sensitivity-analysis-including-bridging-therapy-in-addition-to-the-minimal-adjustment-set-of-covariates">Table
+S5. Sensitivity analysis including bridging therapy in addition to the
+minimal adjustment set of covariates</a></li>
+<li><a
+href="#table-s6.-sensitivity-analysis-excluding-jcar014-patients">Table
+S6. Sensitivity analysis excluding JCAR014 patients</a></li>
+<li><a
+href="#table-s7.-sensitivity-analysis-including-prelymphodepletion-alc-instead-of-preleukapheresis-alc">Table
+S7. Sensitivity analysis including prelymphodepletion ALC instead of
+preleukapheresis ALC</a></li>
+<li><a
+href="#multivariable-ordinal-logistic-regression-model-for-crs-grade-including-interaction-effects">Multivariable
+ordinal logistic regression model for CRS grade including interaction
+effects</a></li>
+<li><a
+href="#multivariable-ordinal-logistic-regression-model-for-icans-grade-including-interaction-terms">Multivariable
+ordinal logistic regression model for ICANS grade including interaction
+terms</a></li>
+<li><a
+href="#multivariable-logistic-regression-model-for-cr-including-interaction-terms">Multivariable
+logistic regression model for CR including interaction terms</a></li>
+<li><a
+href="#figure-4.-the-efficacy-of-distinct-car-t-cell-products-is-differentially-impacted-by-preleukapheresis-alc">Figure
+4. The efficacy of distinct CAR T-cell products is differentially
+impacted by preleukapheresis ALC</a></li>
+<li><a href="#computational-environment">Computational
+environment</a></li>
 </ul>
 </nav>
 </div>
-<h3 id="load-wrangled-dataset-and-define-key-functions">Load wrangled dataset and define key functions</h3>
+<h3 id="load-wrangled-dataset-and-define-key-functions">Load wrangled
+dataset and define key functions</h3>
 <div class="layout-chunk" data-layout="l-body">
 <details>
 <summary>
@@ -1664,7 +1750,8 @@ Iteration 11
 Iteration 12 
 Iteration 13 </code></pre>
 </div>
-<h3 id="table-1.-patient-and-disease-characteristics">Table 1. Patient and disease characteristics</h3>
+<h3 id="table-1.-patient-and-disease-characteristics">Table 1. Patient
+and disease characteristics</h3>
 <div class="layout-chunk" data-layout="l-body-outset">
 <details>
 <summary>
@@ -2273,7 +2360,9 @@ Show code
 </table>
 </div>
 </div>
-<h3 id="table-2.-crs-icans-and-response-after-cd19-car-t-cell-therapy">Table 2. CRS, ICANS and response after CD19 CAR T-cell therapy</h3>
+<h3
+id="table-2.-crs-icans-and-response-after-cd19-car-t-cell-therapy">Table
+2. CRS, ICANS and response after CD19 CAR T-cell therapy</h3>
 <div class="layout-chunk" data-layout="l-body-outset">
 <details>
 <summary>
@@ -2853,7 +2942,9 @@ Show code
 </table>
 </div>
 </div>
-<h3 id="table-s1.-details-of-aggressive-lymphoma-types-treated-with-jcar014">Table S1. Details of aggressive lymphoma types treated with JCAR014</h3>
+<h3
+id="table-s1.-details-of-aggressive-lymphoma-types-treated-with-jcar014">Table
+S1. Details of aggressive lymphoma types treated with JCAR014</h3>
 <div class="layout-chunk" data-layout="l-body">
 <details>
 <summary>
@@ -3256,7 +3347,8 @@ Show code
 </table>
 </div>
 </div>
-<h3 id="table-s2.-time-from-leukapheresis-to-car-t-cell-infusion">Table S2. Time from leukapheresis to CAR T-cell infusion</h3>
+<h3 id="table-s2.-time-from-leukapheresis-to-car-t-cell-infusion">Table
+S2. Time from leukapheresis to CAR T-cell infusion</h3>
 <div class="layout-chunk" data-layout="l-body">
 <details>
 <summary>
@@ -3674,7 +3766,10 @@ Show code
 </table>
 </div>
 </div>
-<h3 id="table-s3.-rates-of-severe-infections-and-cytopenia-after-cd19-car-t-cell-therapy">Table S3. Rates of severe infections and cytopenia after CD19 CAR T-cell therapy</h3>
+<h3
+id="table-s3.-rates-of-severe-infections-and-cytopenia-after-cd19-car-t-cell-therapy">Table
+S3. Rates of severe infections and cytopenia after CD19 CAR T-cell
+therapy</h3>
 <div class="layout-chunk" data-layout="l-body">
 <details>
 <summary>
@@ -4127,7 +4222,8 @@ Show code
 </table>
 </div>
 </div>
-<h3 id="figure-2.-crs-and-icans-rates-across-products">Figure 2. CRS and ICANS rates across products</h3>
+<h3 id="figure-2.-crs-and-icans-rates-across-products">Figure 2. CRS and
+ICANS rates across products</h3>
 <div class="layout-chunk" data-layout="l-body-outset">
 <details>
 <summary>
@@ -4233,7 +4329,9 @@ Show code
 </div>
 </details>
 </div>
-<h3 id="univariate-and-multivariable-ordinal-logistic-regression-model-for-crs-grade">Univariate and multivariable ordinal logistic regression model for CRS grade</h3>
+<h3
+id="univariate-and-multivariable-ordinal-logistic-regression-model-for-crs-grade">Univariate
+and multivariable ordinal logistic regression model for CRS grade</h3>
 <div class="layout-chunk" data-layout="l-body-outset">
 <details>
 <summary>
@@ -4367,16 +4465,20 @@ Show code
 <p>Variance Inflation Factors Due to Imputation:</p>
 <pre><code>       y&gt;=1          y&gt;=2-5 product=tisacel product=jcar014 
        1.00            1.00            1.00            1.00 </code></pre>
-<p>preleuka_LDH_l preleuka_bulk_s age hct_score 1.01 1.13 1.01 1.00 preleuka_ALC_l 1.00</p>
+<p>preleuka_LDH_l preleuka_bulk_s age hct_score 1.01 1.13 1.01 1.00
+preleuka_ALC_l 1.00</p>
 <p>Rate of Missing Information:</p>
 <pre><code>       y&gt;=1          y&gt;=2-5 product=tisacel product=jcar014 
        0.00            0.00            0.00            0.00 </code></pre>
-<p>preleuka_LDH_l preleuka_bulk_s age hct_score 0.01 0.12 0.01 0.00 preleuka_ALC_l 0.00</p>
+<p>preleuka_LDH_l preleuka_bulk_s age hct_score 0.01 0.12 0.01 0.00
+preleuka_ALC_l 0.00</p>
 <p>d.f. for t-distribution for Tests of Single Coefficients:</p>
 <pre><code>       y&gt;=1          y&gt;=2-5 product=tisacel product=jcar014 
  1474346.17      1483149.27      1884670.51      1221633.48 </code></pre>
-<p>preleuka_LDH_l preleuka_bulk_s age hct_score 76673.05 644.82 105773.52 3428713.54 preleuka_ALC_l 5552666.82</p>
-<p>The following fit components were averaged over the 10 model fits:</p>
+<p>preleuka_LDH_l preleuka_bulk_s age hct_score 76673.05 644.82
+105773.52 3428713.54 preleuka_ALC_l 5552666.82</p>
+<p>The following fit components were averaged over the 10 model
+fits:</p>
 <p>stats linear.predictors</p>
 <details>
 <summary>
@@ -4781,8 +4883,11 @@ Show code
 </code></pre>
 </div>
 </details>
-<p>n=129 Mean absolute error=0.019 Mean squared error=0.00055 0.9 Quantile of absolute error=0.035</p>
-<p><img src="Supp_data_distill_files/figure-html5/fitmultiCRS-3.png" width="960" /> n=129 Mean absolute error=0.057 Mean squared error=0.0054 0.9 Quantile of absolute error=0.105</p>
+<p>n=129 Mean absolute error=0.019 Mean squared error=0.00055 0.9
+Quantile of absolute error=0.035</p>
+<p><img src="Supp_data_distill_files/figure-html5/fitmultiCRS-3.png" width="960" />
+n=129 Mean absolute error=0.057 Mean squared error=0.0054 0.9 Quantile
+of absolute error=0.105</p>
 <details>
 <summary>
 Show code
@@ -4824,7 +4929,10 @@ Show code
 </div>
 </details>
 </div>
-<h3 id="sensitivity-analysis-univariate-and-multivariable-ordinal-logistic-regression-model-for-crs-grade-excluding-jcar014-patients">Sensitivity analysis: univariate and multivariable ordinal logistic regression model for CRS grade excluding JCAR014 patients</h3>
+<h3
+id="sensitivity-analysis-univariate-and-multivariable-ordinal-logistic-regression-model-for-crs-grade-excluding-jcar014-patients">Sensitivity
+analysis: univariate and multivariable ordinal logistic regression model
+for CRS grade excluding JCAR014 patients</h3>
 <div class="layout-chunk" data-layout="l-body-outset">
 <details>
 <summary>
@@ -4966,8 +5074,10 @@ Show code
 <p>d.f. for t-distribution for Tests of Single Coefficients:</p>
 <pre><code>       y&gt;=1          y&gt;=2-5 product=tisacel  preleuka_LDH_l 
  8286063.36      6704358.53      5789491.73       120171.67 </code></pre>
-<p>preleuka_bulk_s age hct_score preleuka_ALC_l 738.18 400335.41 25144833.66 7334750.50</p>
-<p>The following fit components were averaged over the 10 model fits:</p>
+<p>preleuka_bulk_s age hct_score preleuka_ALC_l 738.18 400335.41
+25144833.66 7334750.50</p>
+<p>The following fit components were averaged over the 10 model
+fits:</p>
 <p>stats linear.predictors</p>
 <details>
 <summary>
@@ -5361,7 +5471,10 @@ Show code
 </div>
 </details>
 </div>
-<h3 id="sensitivity-analysis-multivariable-ordinal-logistic-regression-model-for-crs-including-bridging">Sensitivity analysis: multivariable ordinal logistic regression model for CRS including bridging</h3>
+<h3
+id="sensitivity-analysis-multivariable-ordinal-logistic-regression-model-for-crs-including-bridging">Sensitivity
+analysis: multivariable ordinal logistic regression model for CRS
+including bridging</h3>
 <div class="layout-chunk" data-layout="l-body-outset">
 <details>
 <summary>
@@ -5605,7 +5718,10 @@ Show code
 </div>
 </details>
 </div>
-<h3 id="sensitivity-analysis-multivariable-ordinal-logistic-regression-model-for-crs-including-preld-alc-instead-of-preleukapheresis-alc">Sensitivity analysis: multivariable ordinal logistic regression model for CRS including preLD ALC instead of preleukapheresis ALC</h3>
+<h3
+id="sensitivity-analysis-multivariable-ordinal-logistic-regression-model-for-crs-including-preld-alc-instead-of-preleukapheresis-alc">Sensitivity
+analysis: multivariable ordinal logistic regression model for CRS
+including preLD ALC instead of preleukapheresis ALC</h3>
 <div class="layout-chunk" data-layout="l-body-outset">
 <details>
 <summary>
@@ -5857,7 +5973,10 @@ Show code
 </div>
 </details>
 </div>
-<h3 id="univariate-and-multivariable-proportional-odds-logistic-regression-model-for-icans-grade">Univariate and multivariable proportional odds logistic regression model for ICANS grade</h3>
+<h3
+id="univariate-and-multivariable-proportional-odds-logistic-regression-model-for-icans-grade">Univariate
+and multivariable proportional odds logistic regression model for ICANS
+grade</h3>
 <div class="layout-chunk" data-layout="l-body-outset">
 <details>
 <summary>
@@ -6004,16 +6123,21 @@ Show code
 <p>Variance Inflation Factors Due to Imputation:</p>
 <pre><code>       y&gt;=1            y&gt;=2          y&gt;=3-5 product=tisacel 
        1.00            1.00            1.00            1.01 </code></pre>
-<p>product=jcar014 preleuka_LDH_l preleuka_bulk_s age 1.00 1.02 1.23 1.01 hct_score preleuka_ALC_l 1.00 1.00</p>
+<p>product=jcar014 preleuka_LDH_l preleuka_bulk_s age 1.00 1.02 1.23
+1.01 hct_score preleuka_ALC_l 1.00 1.00</p>
 <p>Rate of Missing Information:</p>
 <pre><code>       y&gt;=1            y&gt;=2          y&gt;=3-5 product=tisacel 
        0.00            0.00            0.00            0.01 </code></pre>
-<p>product=jcar014 preleuka_LDH_l preleuka_bulk_s age 0.00 0.02 0.19 0.01 hct_score preleuka_ALC_l 0.00 0.00</p>
+<p>product=jcar014 preleuka_LDH_l preleuka_bulk_s age 0.00 0.02 0.19
+0.01 hct_score preleuka_ALC_l 0.00 0.00</p>
 <p>d.f. for t-distribution for Tests of Single Coefficients:</p>
 <pre><code>       y&gt;=1            y&gt;=2          y&gt;=3-5 product=tisacel 
 15504028.07     15488201.77     15930170.81        49514.81 </code></pre>
-<p>product=jcar014 preleuka_LDH_l preleuka_bulk_s age 21973632.32 37932.93 256.98 307653.67 hct_score preleuka_ALC_l 4792663.68 14041663.68</p>
-<p>The following fit components were averaged over the 10 model fits:</p>
+<p>product=jcar014 preleuka_LDH_l preleuka_bulk_s age 21973632.32
+37932.93 256.98 307653.67 hct_score preleuka_ALC_l 4792663.68
+14041663.68</p>
+<p>The following fit components were averaged over the 10 model
+fits:</p>
 <p>stats linear.predictors</p>
 <details>
 <summary>
@@ -6433,9 +6557,13 @@ Show code
 </code></pre>
 </div>
 </details>
-<p>n=129 Mean absolute error=0.026 Mean squared error=0.00106 0.9 Quantile of absolute error=0.052</p>
-<p>n=129 Mean absolute error=0.035 Mean squared error=0.0019 0.9 Quantile of absolute error=0.069</p>
-<p><img src="Supp_data_distill_files/figure-html5/unnamed-chunk-9-3.png" width="1152" /> n=129 Mean absolute error=0.039 Mean squared error=0.00235 0.9 Quantile of absolute error=0.074</p>
+<p>n=129 Mean absolute error=0.026 Mean squared error=0.00106 0.9
+Quantile of absolute error=0.052</p>
+<p>n=129 Mean absolute error=0.035 Mean squared error=0.0019 0.9
+Quantile of absolute error=0.069</p>
+<p><img src="Supp_data_distill_files/figure-html5/unnamed-chunk-9-3.png" width="1152" />
+n=129 Mean absolute error=0.039 Mean squared error=0.00235 0.9 Quantile
+of absolute error=0.074</p>
 <details>
 <summary>
 Show code
@@ -6478,7 +6606,10 @@ Show code
 </div>
 </details>
 </div>
-<h3 id="sensitivity-analysis-univariate-and-multivariable-proportional-odds-logistic-regression-model-for-icans-grade-excluding-jcar014-patients">Sensitivity analysis: univariate and multivariable proportional odds logistic regression model for ICANS grade excluding JCAR014 patients</h3>
+<h3
+id="sensitivity-analysis-univariate-and-multivariable-proportional-odds-logistic-regression-model-for-icans-grade-excluding-jcar014-patients">Sensitivity
+analysis: univariate and multivariable proportional odds logistic
+regression model for ICANS grade excluding JCAR014 patients</h3>
 <div class="layout-chunk" data-layout="l-body-outset">
 <details>
 <summary>
@@ -6618,16 +6749,20 @@ Show code
 <p>Variance Inflation Factors Due to Imputation:</p>
 <pre><code>       y&gt;=1            y&gt;=2          y&gt;=3-5 product=tisacel 
        1.00            1.00            1.00            1.01 </code></pre>
-<p>preleuka_LDH_l preleuka_bulk_s age hct_score 1.02 1.23 1.00 1.00 preleuka_ALC_l 1.00</p>
+<p>preleuka_LDH_l preleuka_bulk_s age hct_score 1.02 1.23 1.00 1.00
+preleuka_ALC_l 1.00</p>
 <p>Rate of Missing Information:</p>
 <pre><code>       y&gt;=1            y&gt;=2          y&gt;=3-5 product=tisacel 
        0.00            0.00            0.00            0.01 </code></pre>
-<p>preleuka_LDH_l preleuka_bulk_s age hct_score 0.02 0.19 0.00 0.00 preleuka_ALC_l 0.00</p>
+<p>preleuka_LDH_l preleuka_bulk_s age hct_score 0.02 0.19 0.00 0.00
+preleuka_ALC_l 0.00</p>
 <p>d.f. for t-distribution for Tests of Single Coefficients:</p>
 <pre><code>       y&gt;=1            y&gt;=2          y&gt;=3-5 product=tisacel 
 66097322.73     71061564.11    110606919.99       112886.93 </code></pre>
-<p>preleuka_LDH_l preleuka_bulk_s age hct_score 33707.95 253.50 535731.68 5881558.60 preleuka_ALC_l 275035062.15</p>
-<p>The following fit components were averaged over the 10 model fits:</p>
+<p>preleuka_LDH_l preleuka_bulk_s age hct_score 33707.95 253.50
+535731.68 5881558.60 preleuka_ALC_l 275035062.15</p>
+<p>The following fit components were averaged over the 10 model
+fits:</p>
 <p>stats linear.predictors</p>
 <details>
 <summary>
@@ -7037,7 +7172,10 @@ Show code
 </div>
 </details>
 </div>
-<h3 id="sensitivity-analysis-fit-multivariable-model-for-icans-including-bridging-therapy">Sensitivity analysis: fit multivariable model for ICANS including bridging therapy</h3>
+<h3
+id="sensitivity-analysis-fit-multivariable-model-for-icans-including-bridging-therapy">Sensitivity
+analysis: fit multivariable model for ICANS including bridging
+therapy</h3>
 <div class="layout-chunk" data-layout="l-body-outset">
 <details>
 <summary>
@@ -7295,7 +7433,10 @@ Show code
 </div>
 </details>
 </div>
-<h3 id="sensitivity-analysis-fit-multivariable-model-for-icans-including-preld-alc-instead-of-preleukapheresis-alc">Sensitivity analysis: fit multivariable model for ICANS including preLD ALC instead of preleukapheresis ALC</h3>
+<h3
+id="sensitivity-analysis-fit-multivariable-model-for-icans-including-preld-alc-instead-of-preleukapheresis-alc">Sensitivity
+analysis: fit multivariable model for ICANS including preLD ALC instead
+of preleukapheresis ALC</h3>
 <div class="layout-chunk" data-layout="l-body-outset">
 <details>
 <summary>
@@ -7561,7 +7702,10 @@ Show code
 </div>
 </details>
 </div>
-<h3 id="univariate-and-multivariable-logistic-regression-model-for-cr-best-response-by-pet-or-ct">Univariate and multivariable logistic regression model for CR (best response by PET or CT)</h3>
+<h3
+id="univariate-and-multivariable-logistic-regression-model-for-cr-best-response-by-pet-or-ct">Univariate
+and multivariable logistic regression model for CR (best response by PET
+or CT)</h3>
 <div class="layout-chunk" data-layout="l-body-outset">
 <details>
 <summary>
@@ -7703,8 +7847,10 @@ Show code
 <p>d.f. for t-distribution for Tests of Single Coefficients:</p>
 <pre><code>  Intercept product=tisacel product=jcar014  preleuka_LDH_l 
     5968.60          312.62          875.13        17132.55 </code></pre>
-<p>preleuka_bulk_s age hct_score preleuka_ALC_l 43.00 2536.71 51613.38 1424.91</p>
-<p>The following fit components were averaged over the 10 model fits:</p>
+<p>preleuka_bulk_s age hct_score preleuka_ALC_l 43.00 2536.71 51613.38
+1424.91</p>
+<p>The following fit components were averaged over the 10 model
+fits:</p>
 <p>stats linear.predictors</p>
 <details>
 <summary>
@@ -8101,7 +8247,9 @@ Show code
 </code></pre>
 </div>
 </details>
-<p><img src="Supp_data_distill_files/figure-html5/unnamed-chunk-12-2.png" width="480" /> n=126 Mean absolute error=0.058 Mean squared error=0.00436 0.9 Quantile of absolute error=0.102</p>
+<p><img src="Supp_data_distill_files/figure-html5/unnamed-chunk-12-2.png" width="480" />
+n=126 Mean absolute error=0.058 Mean squared error=0.00436 0.9 Quantile
+of absolute error=0.102</p>
 <details>
 <summary>
 Show code
@@ -8133,8 +8281,10 @@ Show code
 <p>d.f. for t-distribution for Tests of Single Coefficients:</p>
 <pre><code>  Intercept product=tisacel product=jcar014  preleuka_LDH_l 
    15691.91         1500.05         8307.83         1519.90 </code></pre>
-<p>preleuka_bulk_s age hct_score preleuka_ALC_l 28.48 15825.25 2855.76 1831.22</p>
-<p>The following fit components were averaged over the 10 model fits:</p>
+<p>preleuka_bulk_s age hct_score preleuka_ALC_l 28.48 15825.25 2855.76
+1831.22</p>
+<p>The following fit components were averaged over the 10 model
+fits:</p>
 <p>stats linear.predictors</p>
 <details>
 <summary>
@@ -8165,8 +8315,10 @@ Show code
 <p>d.f. for t-distribution for Tests of Single Coefficients:</p>
 <pre><code>  Intercept product=tisacel product=jcar014  preleuka_LDH_l 
   107641.60         3721.71         3619.76         7228.56 </code></pre>
-<p>preleuka_bulk_s age hct_score preleuka_ALC_l 103.34 28962.56 17309.33 15553.39</p>
-<p>The following fit components were averaged over the 10 model fits:</p>
+<p>preleuka_bulk_s age hct_score preleuka_ALC_l 103.34 28962.56 17309.33
+15553.39</p>
+<p>The following fit components were averaged over the 10 model
+fits:</p>
 <p>stats linear.predictors</p>
 <details>
 <summary>
@@ -8180,7 +8332,10 @@ Show code
 </div>
 </details>
 </div>
-<h3 id="figure-3.-forest-plot-of-predictors-of-complete-response-after-cd19-car-t-cell-therapy">Figure 3. Forest plot of predictors of complete response after CD19 CAR T-cell therapy</h3>
+<h3
+id="figure-3.-forest-plot-of-predictors-of-complete-response-after-cd19-car-t-cell-therapy">Figure
+3. Forest plot of predictors of complete response after CD19 CAR T-cell
+therapy</h3>
 <div class="layout-chunk" data-layout="l-body-outset">
 <details>
 <summary>
@@ -8210,7 +8365,10 @@ Show code
 </div>
 </details>
 </div>
-<h3 id="sensitivity-analysis-univariate-and-multivariable-logistic-regression-for-cr-best-response-excluding-jcar014">Sensitivity analysis: univariate and multivariable logistic regression for CR (best response) excluding JCAR014</h3>
+<h3
+id="sensitivity-analysis-univariate-and-multivariable-logistic-regression-for-cr-best-response-excluding-jcar014">Sensitivity
+analysis: univariate and multivariable logistic regression for CR (best
+response) excluding JCAR014</h3>
 <div class="layout-chunk" data-layout="l-body-outset">
 <details>
 <summary>
@@ -8250,7 +8408,8 @@ Show code
     1326.89          417.29        22210.14           40.53 
         age       hct_score  preleuka_ALC_l 
      836.48         1070.79         1332.40 </code></pre>
-<p>The following fit components were averaged over the 10 model fits:</p>
+<p>The following fit components were averaged over the 10 model
+fits:</p>
 <p>stats linear.predictors</p>
 <details>
 <summary>
@@ -8284,7 +8443,8 @@ Show code
    48727.43         1634.76         2964.14           59.38 
         age       hct_score  preleuka_ALC_l 
    37019.39         2618.45        11489.67 </code></pre>
-<p>The following fit components were averaged over the 10 model fits:</p>
+<p>The following fit components were averaged over the 10 model
+fits:</p>
 <p>stats linear.predictors</p>
 <details>
 <summary>
@@ -8318,7 +8478,8 @@ Show code
    16015.41         1312.26         7651.04           32.64 
         age       hct_score  preleuka_ALC_l 
     8398.90          430.87         4272.16 </code></pre>
-<p>The following fit components were averaged over the 10 model fits:</p>
+<p>The following fit components were averaged over the 10 model
+fits:</p>
 <p>stats linear.predictors</p>
 <details>
 <summary>
@@ -8385,7 +8546,10 @@ Show code
 </div>
 </details>
 </div>
-<h3 id="sensitivity-analysis-univariate-and-multivariable-logistic-regression-for-cr-best-response-including-bridging-therapy">Sensitivity analysis: univariate and multivariable logistic regression for CR (best response) including bridging therapy</h3>
+<h3
+id="sensitivity-analysis-univariate-and-multivariable-logistic-regression-for-cr-best-response-including-bridging-therapy">Sensitivity
+analysis: univariate and multivariable logistic regression for CR (best
+response) including bridging therapy</h3>
 <div class="layout-chunk" data-layout="l-body">
 <details>
 <summary>
@@ -8549,7 +8713,10 @@ Show code
 </div>
 </details>
 </div>
-<h3 id="sensitivity-analysis-univariate-and-multivariable-logistic-regression-for-cr-best-response-including-preld-alc-instead-of-preleukapheresis-alc">Sensitivity analysis: univariate and multivariable logistic regression for CR (best response) including preLD ALC instead of preleukapheresis ALC</h3>
+<h3
+id="sensitivity-analysis-univariate-and-multivariable-logistic-regression-for-cr-best-response-including-preld-alc-instead-of-preleukapheresis-alc">Sensitivity
+analysis: univariate and multivariable logistic regression for CR (best
+response) including preLD ALC instead of preleukapheresis ALC</h3>
 <div class="layout-chunk" data-layout="l-body">
 <details>
 <summary>
@@ -8713,7 +8880,10 @@ Show code
 </div>
 </details>
 </div>
-<h3 id="sensitivity-analysis-univariate-and-multivariable-logistic-regression-model-for-orr-best-response---ct-criteria-only">Sensitivity analysis: univariate and multivariable logistic regression model for ORR (best response - CT criteria only)</h3>
+<h3
+id="sensitivity-analysis-univariate-and-multivariable-logistic-regression-model-for-orr-best-response---ct-criteria-only">Sensitivity
+analysis: univariate and multivariable logistic regression model for ORR
+(best response - CT criteria only)</h3>
 <div class="layout-chunk" data-layout="l-body">
 <details>
 <summary>
@@ -9221,7 +9391,10 @@ JCAR014 versus axicel          0.59 0.24-1.43   0.2413         0.4
 Tisacel versus axicel 0.22-1.59   0.2970
 JCAR014 versus axicel 0.14-1.08   0.0712</code></pre>
 </div>
-<h3 id="sensitivity-analysis-univariate-and-multivariable-logistic-regression-model-for-orr-best-response---pet-criteria-only">Sensitivity analysis: univariate and multivariable logistic regression model for ORR (best response - PET criteria only)</h3>
+<h3
+id="sensitivity-analysis-univariate-and-multivariable-logistic-regression-model-for-orr-best-response---pet-criteria-only">Sensitivity
+analysis: univariate and multivariable logistic regression model for ORR
+(best response - PET criteria only)</h3>
 <div class="layout-chunk" data-layout="l-body">
 <details>
 <summary>
@@ -9729,7 +9902,8 @@ JCAR014 versus axicel          0.59 0.24-1.43   0.2413        0.24
 Tisacel versus axicel 0.08-1.28   0.1060
 JCAR014 versus axicel 0.07-0.83   0.0243</code></pre>
 </div>
-<h3 id="table-3.-car-t-cell-product-type-and-outcome-prediction">Table 3. CAR T-cell product type and outcome prediction</h3>
+<h3 id="table-3.-car-t-cell-product-type-and-outcome-prediction">Table
+3. CAR T-cell product type and outcome prediction</h3>
 <div class="layout-chunk" data-layout="l-body">
 <details>
 <summary>
@@ -10036,12 +10210,18 @@ CR (Best Response - PET criteria only)^
 </tbody>
 <tr>
 <td colspan="7" style="text-align: left;">
-*From a multivariable proportional odds logistic regression model or ^logistic regression model including the following variables: CAR T-cell product type, preleukapheresis LDH, preleukapheresis largest lesion diameter, age, HCT-CI, preleukapheresis ALC. P values per the Wald test.
+*From a multivariable proportional odds logistic regression model or
+^logistic regression model including the following variables: CAR T-cell
+product type, preleukapheresis LDH, preleukapheresis largest lesion
+diameter, age, HCT-CI, preleukapheresis ALC. P values per the Wald test.
 </td>
 </tr>
 </table>
 </div>
-<h3 id="table-s4.-comparison-of-preleukapheresis-and-prelymphodepletion-tumor-burden-and-alc">Table S4. Comparison of preleukapheresis and prelymphodepletion tumor burden and ALC</h3>
+<h3
+id="table-s4.-comparison-of-preleukapheresis-and-prelymphodepletion-tumor-burden-and-alc">Table
+S4. Comparison of preleukapheresis and prelymphodepletion tumor burden
+and ALC</h3>
 <div class="layout-chunk" data-layout="l-body">
 <details>
 <summary>
@@ -10516,7 +10696,10 @@ Show code
 </table>
 </div>
 </div>
-<h3 id="table-s5.-sensitivity-analysis-including-bridging-therapy-in-addition-to-the-minimal-adjustment-set-of-covariates">Table S5. Sensitivity analysis including bridging therapy in addition to the minimal adjustment set of covariates</h3>
+<h3
+id="table-s5.-sensitivity-analysis-including-bridging-therapy-in-addition-to-the-minimal-adjustment-set-of-covariates">Table
+S5. Sensitivity analysis including bridging therapy in addition to the
+minimal adjustment set of covariates</h3>
 <div class="layout-chunk" data-layout="l-body">
 <details>
 <summary>
@@ -10821,12 +11004,17 @@ CR (Best Response - PET criteria only)^
 </tbody>
 <tr>
 <td colspan="7" style="text-align: left;">
-*From a multivariable proportional odds logistic regression model or ^logistic regression model including the following variables: CAR T-cell product type, preleukapheresis LDH, preleukapheresis largest lesion diameter, age, HCT-CI, preleukapheresis ALC, bridging therapy post leukapheresis. P values per the Wald test.
+*From a multivariable proportional odds logistic regression model or
+^logistic regression model including the following variables: CAR T-cell
+product type, preleukapheresis LDH, preleukapheresis largest lesion
+diameter, age, HCT-CI, preleukapheresis ALC, bridging therapy post
+leukapheresis. P values per the Wald test.
 </td>
 </tr>
 </table>
 </div>
-<h3 id="table-s6.-sensitivity-analysis-excluding-jcar014-patients">Table S6. Sensitivity analysis excluding JCAR014 patients</h3>
+<h3 id="table-s6.-sensitivity-analysis-excluding-jcar014-patients">Table
+S6. Sensitivity analysis excluding JCAR014 patients</h3>
 <div class="layout-chunk" data-layout="l-body">
 <details>
 <summary>
@@ -11018,12 +11206,19 @@ CR (Best Response - PET criteria only)^
 </tbody>
 <tr>
 <td colspan="7" style="text-align: left;">
-*From a multivariable proportional odds logistic regression model or ^logistic regression model including the following variables: CAR T-cell product type, preleukapheresis LDH, preleukapheresis largest lesion diameter, age, HCT-CI, preleukapheresis ALC, bridging therapy post leukapheresis. P values per the Wald test.
+*From a multivariable proportional odds logistic regression model or
+^logistic regression model including the following variables: CAR T-cell
+product type, preleukapheresis LDH, preleukapheresis largest lesion
+diameter, age, HCT-CI, preleukapheresis ALC, bridging therapy post
+leukapheresis. P values per the Wald test.
 </td>
 </tr>
 </table>
 </div>
-<h3 id="table-s7.-sensitivity-analysis-including-prelymphodepletion-alc-instead-of-preleukapheresis-alc">Table S7. Sensitivity analysis including prelymphodepletion ALC instead of preleukapheresis ALC</h3>
+<h3
+id="table-s7.-sensitivity-analysis-including-prelymphodepletion-alc-instead-of-preleukapheresis-alc">Table
+S7. Sensitivity analysis including prelymphodepletion ALC instead of
+preleukapheresis ALC</h3>
 <div class="layout-chunk" data-layout="l-body">
 <details>
 <summary>
@@ -11334,12 +11529,19 @@ CR (Best Response - PET criteria only)^
 </tbody>
 <tr>
 <td colspan="7" style="text-align: left;">
-*From a multivariable proportional odds logistic regression model or ^logistic regression model including the following variables: CAR T-cell product type, preleukapheresis LDH, preleukapheresis largest lesion diameter, age, HCT-CI, prelymphodepletion ALC, bridging therapy post leukapheresis. P values per the Wald test.
+*From a multivariable proportional odds logistic regression model or
+^logistic regression model including the following variables: CAR T-cell
+product type, preleukapheresis LDH, preleukapheresis largest lesion
+diameter, age, HCT-CI, prelymphodepletion ALC, bridging therapy post
+leukapheresis. P values per the Wald test.
 </td>
 </tr>
 </table>
 </div>
-<h3 id="multivariable-ordinal-logistic-regression-model-for-crs-grade-including-interaction-effects">Multivariable ordinal logistic regression model for CRS grade including interaction effects</h3>
+<h3
+id="multivariable-ordinal-logistic-regression-model-for-crs-grade-including-interaction-effects">Multivariable
+ordinal logistic regression model for CRS grade including interaction
+effects</h3>
 <div class="layout-chunk" data-layout="l-body-outset">
 <details>
 <summary>
@@ -11382,7 +11584,10 @@ Show code
                                    1.00 
                          preleuka_ALC_l 
                                    1.00 </code></pre>
-<p>product_s=tisacel/JCAR014 * preleuka_LDH_l 1.02 product_s=tisacel/JCAR014 * preleuka_bulk_s 1.11 product_s=tisacel/JCAR014 * age 1.01 product_s=tisacel/JCAR014 * hct_score 1.00 product_s=tisacel/JCAR014 * preleuka_ALC_l 1.01</p>
+<p>product_s=tisacel/JCAR014 * preleuka_LDH_l 1.02
+product_s=tisacel/JCAR014 * preleuka_bulk_s 1.11
+product_s=tisacel/JCAR014 * age 1.01 product_s=tisacel/JCAR014 *
+hct_score 1.00 product_s=tisacel/JCAR014 * preleuka_ALC_l 1.01</p>
 <p>Rate of Missing Information:</p>
 <pre><code>                                   y&gt;=1 
                                    0.00 
@@ -11400,7 +11605,10 @@ Show code
                                    0.00 
                          preleuka_ALC_l 
                                    0.00 </code></pre>
-<p>product_s=tisacel/JCAR014 * preleuka_LDH_l 0.02 product_s=tisacel/JCAR014 * preleuka_bulk_s 0.10 product_s=tisacel/JCAR014 * age 0.01 product_s=tisacel/JCAR014 * hct_score 0.00 product_s=tisacel/JCAR014 * preleuka_ALC_l 0.01</p>
+<p>product_s=tisacel/JCAR014 * preleuka_LDH_l 0.02
+product_s=tisacel/JCAR014 * preleuka_bulk_s 0.10
+product_s=tisacel/JCAR014 * age 0.01 product_s=tisacel/JCAR014 *
+hct_score 0.00 product_s=tisacel/JCAR014 * preleuka_ALC_l 0.01</p>
 <p>d.f. for t-distribution for Tests of Single Coefficients:</p>
 <pre><code>                                   y&gt;=1 
                            1.304235e+09 
@@ -11418,8 +11626,13 @@ Show code
                            6.849014e+05 
                          preleuka_ALC_l 
                            1.765304e+09 </code></pre>
-<p>product_s=tisacel/JCAR014 * preleuka_LDH_l 1.637265e+04 product_s=tisacel/JCAR014 * preleuka_bulk_s 9.072100e+02 product_s=tisacel/JCAR014 * age 3.208591e+05 product_s=tisacel/JCAR014 * hct_score 2.359576e+06 product_s=tisacel/JCAR014 * preleuka_ALC_l 1.795134e+05</p>
-<p>The following fit components were averaged over the 10 model fits:</p>
+<p>product_s=tisacel/JCAR014 * preleuka_LDH_l 1.637265e+04
+product_s=tisacel/JCAR014 * preleuka_bulk_s 9.072100e+02
+product_s=tisacel/JCAR014 * age 3.208591e+05 product_s=tisacel/JCAR014 *
+hct_score 2.359576e+06 product_s=tisacel/JCAR014 * preleuka_ALC_l
+1.795134e+05</p>
+<p>The following fit components were averaged over the 10 model
+fits:</p>
 <p>stats linear.predictors</p>
 <details>
 <summary>
@@ -11749,8 +11962,11 @@ Show code
 </code></pre>
 </div>
 </details>
-<p>n=129 Mean absolute error=0.027 Mean squared error=0.00149 0.9 Quantile of absolute error=0.058</p>
-<p><img src="Supp_data_distill_files/figure-html5/effmodCRS-2.png" width="768" /> n=129 Mean absolute error=0.05 Mean squared error=0.00403 0.9 Quantile of absolute error=0.094</p>
+<p>n=129 Mean absolute error=0.027 Mean squared error=0.00149 0.9
+Quantile of absolute error=0.058</p>
+<p><img src="Supp_data_distill_files/figure-html5/effmodCRS-2.png" width="768" />
+n=129 Mean absolute error=0.05 Mean squared error=0.00403 0.9 Quantile
+of absolute error=0.094</p>
 <details>
 <summary>
 Show code
@@ -11761,7 +11977,10 @@ Show code
 </div>
 </details>
 </div>
-<h3 id="multivariable-ordinal-logistic-regression-model-for-icans-grade-including-interaction-terms">Multivariable ordinal logistic regression model for ICANS grade including interaction terms</h3>
+<h3
+id="multivariable-ordinal-logistic-regression-model-for-icans-grade-including-interaction-terms">Multivariable
+ordinal logistic regression model for ICANS grade including interaction
+terms</h3>
 <div class="layout-chunk" data-layout="l-body">
 <details>
 <summary>
@@ -11798,7 +12017,10 @@ Show code
                                    1.00 
                          preleuka_ALC_l 
                                    1.00 </code></pre>
-<p>product_s=tisacel/JCAR014 * preleuka_LDH_l 1.02 product_s=tisacel/JCAR014 * preleuka_bulk_s 1.11 product_s=tisacel/JCAR014 * age 1.00 product_s=tisacel/JCAR014 * hct_score 1.01 product_s=tisacel/JCAR014 * preleuka_ALC_l 1.01</p>
+<p>product_s=tisacel/JCAR014 * preleuka_LDH_l 1.02
+product_s=tisacel/JCAR014 * preleuka_bulk_s 1.11
+product_s=tisacel/JCAR014 * age 1.00 product_s=tisacel/JCAR014 *
+hct_score 1.01 product_s=tisacel/JCAR014 * preleuka_ALC_l 1.01</p>
 <p>Rate of Missing Information:</p>
 <pre><code>                                   y&gt;=1 
                                    0.00 
@@ -11818,7 +12040,10 @@ Show code
                                    0.00 
                          preleuka_ALC_l 
                                    0.00 </code></pre>
-<p>product_s=tisacel/JCAR014 * preleuka_LDH_l 0.02 product_s=tisacel/JCAR014 * preleuka_bulk_s 0.10 product_s=tisacel/JCAR014 * age 0.00 product_s=tisacel/JCAR014 * hct_score 0.01 product_s=tisacel/JCAR014 * preleuka_ALC_l 0.01</p>
+<p>product_s=tisacel/JCAR014 * preleuka_LDH_l 0.02
+product_s=tisacel/JCAR014 * preleuka_bulk_s 0.10
+product_s=tisacel/JCAR014 * age 0.00 product_s=tisacel/JCAR014 *
+hct_score 0.01 product_s=tisacel/JCAR014 * preleuka_ALC_l 0.01</p>
 <p>d.f. for t-distribution for Tests of Single Coefficients:</p>
 <pre><code>                                   y&gt;=1 
                            265800609.25 
@@ -11838,8 +12063,13 @@ Show code
                               403376.89 
                          preleuka_ALC_l 
                            428300149.88 </code></pre>
-<p>product_s=tisacel/JCAR014 * preleuka_LDH_l 32826.65 product_s=tisacel/JCAR014 * preleuka_bulk_s 919.23 product_s=tisacel/JCAR014 * age 1027273.81 product_s=tisacel/JCAR014 * hct_score 344006.92 product_s=tisacel/JCAR014 * preleuka_ALC_l 230303.63</p>
-<p>The following fit components were averaged over the 10 model fits:</p>
+<p>product_s=tisacel/JCAR014 * preleuka_LDH_l 32826.65
+product_s=tisacel/JCAR014 * preleuka_bulk_s 919.23
+product_s=tisacel/JCAR014 * age 1027273.81 product_s=tisacel/JCAR014 *
+hct_score 344006.92 product_s=tisacel/JCAR014 * preleuka_ALC_l
+230303.63</p>
+<p>The following fit components were averaged over the 10 model
+fits:</p>
 <p>stats linear.predictors</p>
 <details>
 <summary>
@@ -12184,9 +12414,13 @@ Show code
 </code></pre>
 </div>
 </details>
-<p>n=129 Mean absolute error=0.041 Mean squared error=0.00222 0.9 Quantile of absolute error=0.078</p>
-<p>n=129 Mean absolute error=0.047 Mean squared error=0.00241 0.9 Quantile of absolute error=0.064</p>
-<p><img src="Supp_data_distill_files/figure-html5/effmodICANS-2.png" width="1152" /> n=129 Mean absolute error=0.051 Mean squared error=0.00311 0.9 Quantile of absolute error=0.083</p>
+<p>n=129 Mean absolute error=0.041 Mean squared error=0.00222 0.9
+Quantile of absolute error=0.078</p>
+<p>n=129 Mean absolute error=0.047 Mean squared error=0.00241 0.9
+Quantile of absolute error=0.064</p>
+<p><img src="Supp_data_distill_files/figure-html5/effmodICANS-2.png" width="1152" />
+n=129 Mean absolute error=0.051 Mean squared error=0.00311 0.9 Quantile
+of absolute error=0.083</p>
 <details>
 <summary>
 Show code
@@ -12197,7 +12431,9 @@ Show code
 </div>
 </details>
 </div>
-<h2 id="multivariable-logistic-regression-model-for-cr-including-interaction-terms">Multivariable logistic regression model for CR including interaction terms</h2>
+<h2
+id="multivariable-logistic-regression-model-for-cr-including-interaction-terms">Multivariable
+logistic regression model for CR including interaction terms</h2>
 <div class="layout-chunk" data-layout="l-body-outset">
 <details>
 <summary>
@@ -12645,7 +12881,10 @@ Show code
 </div>
 </details>
 </div>
-<h2 id="figure-4.-the-efficacy-of-distinct-car-t-cell-products-is-differentially-impacted-by-preleukapheresis-alc">Figure 4. The efficacy of distinct CAR T-cell products is differentially impacted by preleukapheresis ALC</h2>
+<h2
+id="figure-4.-the-efficacy-of-distinct-car-t-cell-products-is-differentially-impacted-by-preleukapheresis-alc">Figure
+4. The efficacy of distinct CAR T-cell products is differentially
+impacted by preleukapheresis ALC</h2>
 <div class="layout-chunk" data-layout="l-body-outset">
 <details>
 <summary>
@@ -12816,7 +13055,7 @@ Show code
  reprex          0.3.0      2019-05-16 [1]
  rio             0.5.16     2018-11-26 [1]
  rlang           1.0.2      2022-03-04 [1]
- rmarkdown       2.8        2021-05-07 [1]
+ rmarkdown       2.13       2022-03-10 [1]
  rms           * 6.1-0      2020-11-29 [1]
  rpart           4.1-15     2019-04-12 [1]
  rprojroot       2.0.2      2020-11-15 [1]
@@ -12843,7 +13082,7 @@ Show code
  utf8            1.2.2      2021-07-24 [1]
  vctrs           0.3.8      2021-04-29 [1]
  withr           2.4.2      2021-04-18 [1]
- xfun            0.23       2021-05-15 [1]
+ xfun            0.30       2022-03-02 [1]
  xml2            1.3.2      2020-04-23 [1]
  yaml            2.2.1      2020-02-01 [1]
  zip             2.1.1      2020-08-27 [1]
@@ -12976,7 +13215,7 @@ Show code
  CRAN (R 4.0.2)                       
  CRAN (R 4.0.2)                       
  CRAN (R 4.0.2)                       
- CRAN (R 4.0.2)                       
+ CRAN (R 4.0.5)                       
  CRAN (R 4.0.1)                       
  CRAN (R 4.0.1)                       
  CRAN (R 4.0.2)                       
@@ -12984,7 +13223,8 @@ Show code
 
 [1] /Library/Frameworks/R.framework/Versions/4.0/Resources/library</code></pre>
 </div>
-<div class="sourceCode" id="cb60"><pre class="sourceCode r distill-force-highlighting-css"><code class="sourceCode r"></code></pre></div>
+<div class="sourceCode" id="cb60"><pre
+class="sourceCode r distill-force-highlighting-css"><code class="sourceCode r"></code></pre></div>
 <!--radix_placeholder_article_footer-->
 <!--/radix_placeholder_article_footer-->
 </div>

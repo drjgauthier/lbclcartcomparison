@@ -979,13 +979,13 @@ CR_CT_t <- resp_table_sparser(fit_uniCT,fit_mi_CT)
 CR_PET_t <- resp_table_sparser(fit_uniPET,fit_mi_PET)
 ```
 
-### Figure 3.
+### Figure 3. Forest plot of predictors of complete response after CD19 CAR T-cell therapy
 
 ```{r,layout="l-body-outset",fig.width=10, fig.height=6}
 newnames <- c("Preleukapheresis LDH", "Preleukapheresis largest lesion diameter", "Age", "HCT-CI", "Preleukapheresis ALC","tisacel versus axicel","JCAR014 versus axicel")
 newhead <- c("Odds Ratio", "Lower CI", "Upper CI" )
-p <- forestplot(summary(fit_mi),digits=2,title="OR for complete response (best response by PET or CT)",row.names.y = newnames,header = newhead)
-grid.arrange(p,top = grid::textGrob("Figure 3.", x = 0, hjust = 0,gp=grid::gpar(fontface="bold")))
+forestplot(summary(fit_mi),digits=2,title="OR for complete response (best response by PET or CT)",row.names.y = newnames,header = newhead)
+
 #Save as .eps
 # cairo_ps("manuscript/Blood_resub2/Fig3.eps", width = 12, height = 4)
 # newnames <- c("Preleukapheresis LDH", "Preleukapheresis largest lesion diameter", "Age", "HCT-CI", "Preleukapheresis ALC","tisacel versus axicel","JCAR014 versus axicel")
