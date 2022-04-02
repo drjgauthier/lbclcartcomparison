@@ -22,13 +22,18 @@ library(tidyverse)
 library(htmlTable)
 library(skimr)
 library(patchwork)
+library(ggpubr)
+library(ormPlot)
+library(rms)
+library(grid)
+library(gridExtra)
 theme_set(theme_bw())
 ```
 
-### Load wrangled dataset and functions
+### Load wrangled dataset and define key functions
 
 ```{r,warning = FALSE}
-df <- read.xlsx("dfs/20220217_df.xlsx",sheet=1)
+df <- read.xlsx("dfs/20220331_df.xlsx",sheet=1)
 
 # Plot calibration curves for ordinal models with 2 intercepts
 fit_check_ord2 <- function(fit,predictor){
@@ -66,18 +71,72 @@ get_model_stats = function(x) {
   )
 }
 
+# Sparse regression coefficients, CI and P values from univariate and multivariable fits (minimal adjustment set of covariates) for response
+resp_table_sparser <- function(fituni,fitmulti){
+#Parse ORs and 95% CIs from univariate model
+d <- summary(fituni)
+d <- data.frame(d)
+resp_unadj <- rbind(
+  cbind(round(d[2,4],2),paste(round(d[2,6],2),round(d[2,7],2),sep="-")),
+  cbind(round(d[4,4],2),paste(round(d[4,6],2),round(d[4,7],2),sep="-"))
+)
+colnames(resp_unadj) <- c("unadjusted OR","95% CI")
+rownames(resp_unadj) <- c("Tisacel versus axicel","JCAR014 versus axicel")
+#Parse p values from univariate model
+unadjstats_d <- get_model_stats(fituni)
+#Parse ORs and 95% CI from multivariable model
+d <- data.frame(summary(fitmulti))
+resp_adj <- rbind(
+  cbind(round(d[12,4],2),paste(round(d[12,6],2),round(d[12,7],2),sep="-")),
+  cbind(round(d[14,4],2),paste(round(d[14,6],2),round(d[14,7],2),sep="-"))
+)
+colnames(resp_adj) <- c("adjusted OR","95% CI")
+rownames(resp_adj) <- c("Tisacel versus axicel","JCAR014 versus axicel")
+#Parse p values from multivariable model
+adjstats_d <- get_model_stats(fitmulti)
+#Create table object to merge later
+resp_t <- cbind(resp_unadj,unadjstats_d$coefs[2:3,5],resp_adj,adjstats_d$coefs[2:3,5])
+resp_t
+}
+
 
 # Impute missing data
 set.seed(12345)
 df$preleuka_LDH_l <- log10(df$preleuka_LDH)
 df$preleuka_ALC_l <- log10(df$preleuka_ALC)
+df$preLD_LDH_l <- log10(df$preLD_LDH)
+df$preLD_ALC_l <- log10(df$preLD_ALC)
+
 df <- df %>% 
   mutate(product=fct_relevel(product,"axicel","tisacel","jcar014"))
-library(rms)
 dd <- datadist(df)
 options(datadist='dd')
 mi <- aregImpute(formula = ~ product+preleuka_LDH_l+age+hct_score+preleuka_bulk_s+preleuka_ALC_l,
                  data=df, n.impute = 10, burnin=3, nk=3, type='pmm', pmmtype=1)
+
+# Impute missing data excluding JCAR014 patient
+set.seed(12346)
+df2 <- df[df$product!="jcar014",]
+df2$product <- as.factor(as.character(df2$product))
+df2 <- df2 %>% 
+  select(
+    product,
+    preleuka_LDH_l,
+    age,
+    hct_score,
+    preleuka_bulk_s,
+    preleuka_ALC_l,
+    crs_g_r,
+    nt_g_r,
+    bestCR_b,
+    bestCR_CT_b,
+    bestCR_PET_b
+  )
+dd2 <- datadist(df2)
+options(datadist='dd2')
+mi2 <- aregImpute(formula = ~ product+preleuka_LDH_l+age+hct_score+preleuka_bulk_s+preleuka_ALC_l,
+                 data=df2, n.impute = 10, burnin=3, nk=3, type='pmm', pmmtype=1)
+
 ```
 
 ### Table 1. Patient and disease characteristics
@@ -170,11 +229,15 @@ t2a <- df %>%
 
 #### Table 2b response ####
 t2b <- df %>%
-  filter(!is.na(bestresp_b)) %>%
+  filter(!is.na(bestresp_b)) %>% # to use the right denominator for percentage calculation (pts available for response)
   transmute(
     `CAR T-cell product` = fct_relevel(product, "axicel", "tisacel", "jcar014"),
     `Overall response rate (best response)` = as.numeric(bestresp_b),
-    `Complete response rate (best response)` = bestCR_b
+    `Overall response rate (best response - CT-only criteria)` = as.numeric(bestresp_CT_b),
+    `Overall response rate (best response - PET-only criteria)` = as.numeric(bestresp_PET_b),
+    `Complete response rate (best response)` = bestCR_b,
+    `Complete response rate (best response - CT-only criteria)` = as.numeric(bestCR_CT_b),
+    `Complete response rate (best response - PET-only criteria)` = as.numeric(bestCR_PET_b)
   ) %>%
   mutate(
     `CAR T-cell product` = recode_factor(
@@ -280,7 +343,7 @@ df %>%
   bold_labels()
 ```
 
-### Figure 3. CRS and ICANS rates across products
+### Figure 2. CRS and ICANS rates across products
 
 ```{r,layout="l-body-outset",fig.width=11, fig.height=6}
 df <- df %>% 
@@ -362,9 +425,9 @@ fig1 + plot_annotation(
   theme(plot.tag = element_text(face = 'bold'))
 
 # Save to eps
-# cairo_ps("Manuscript/Fig3.eps", width = 12, height = 7)
+# cairo_ps("Manuscript/Blood_resub2/Fig2.eps", width = 12, height = 7)
 # fig1 + plot_annotation(
-#   title = 'Figure 3.',
+#   title = 'Figure 2.',
 #   tag_levels = "A",
 #   theme = theme(plot.title = element_text(size = 24,face='bold'))
 # ) &
@@ -372,9 +435,11 @@ fig1 + plot_annotation(
 # dev.off()
 ```
 
-### Univariate ordinal logistic regression model for CRS grade
+### Univariate and multivariable ordinal logistic regression model for CRS grade
 
-```{r fituniCRS, layout="l-body-outset"}
+```{r fitmultiCRS,layout="l-body-outset",results='asis',fig.width=10, fig.height=6}
+options(datadist='dd')
+#Univariate
 fit_crs <- lrm(crs_g_r ~ product,x=T,y=T,data=df)
 options(prType="html")
 print(
@@ -384,12 +449,7 @@ print(
   coefs = T,
   title = "Univariate ordinal proportional odds logistic regression model for CRS grade"
 )
-options(prType=NULL)
-```
-
-### Multivariable ordinal logistic regression model for CRS grade
-
-```{r fitmultiCRS,layout="l-body-outset",results='asis',fig.width=10, fig.height=6}
+#Multivariable
 fit_mi <-
   fit.mult.impute(
     crs_g_r ~ product + preleuka_LDH_l + preleuka_bulk_s + age + hct_score + preleuka_ALC_l,
@@ -399,13 +459,13 @@ fit_mi <-
     x = T,
     y = T
   )
-options(prType="html")
 print(
   fit_mi,
   labels = c("tisacel", "JCAR014"),
   digits = 2,
   coefs = T
 )
+forestplot(summary(fit_mi),digits=2,title="OR for CRS grade")
 print(summary(fit_mi,age=c(50,60)),digits = 2)
 print(anova(fit_mi),digits = 2)
 plot(anova(fit_mi))
@@ -424,9 +484,6 @@ rownames(crs_unadj) <- c("Tisacel versus axicel","JCAR014 versus axicel")
 #Parse p values from univariate model
 crs_unadjstats_d <- get_model_stats(fit_crs)
 
-#Parse p values from multivariable model
-crs_adjstats_d <- get_model_stats(fit_mi)
-
 #Parse ORs and 95% CI from multivariable model
 d <- data.frame(summary(fit_mi))
 crs_adj <- rbind(
@@ -436,17 +493,83 @@ crs_adj <- rbind(
 colnames(crs_adj) <- c("adjusted OR","95% CI")
 rownames(crs_adj) <- c("Tisacel versus axicel","JCAR014 versus axicel")
 
+#Parse p values from multivariable model
+crs_adjstats_d <- get_model_stats(fit_mi)
+
 ### Create object to merge tables later
 CRS_t <-
   cbind(crs_unadj,
         crs_unadjstats_d$coefs[3:4, 5],
         crs_adj,
         crs_adjstats_d$coefs[3:4, 5])
+
 ```
 
-### Sensitivity analysis: Fit multivariable model for CRS including bridging
+### Sensitivity analysis: univariate and multivariable ordinal logistic regression model for CRS grade excluding JCAR014 patients
+
+```{r,layout="l-body-outset",results='asis',fig.width=10, fig.height=6}
+options(datadist='dd2')
+#Univariate
+fit_crs_sub <- lrm(crs_g_r ~ product,x=T,y=T,data=df2)
+options(prType="html")
+print(
+  fit_crs,
+  labels = c("tisacel", "JCAR014"),
+  digits = 2,
+  coefs = T,
+  title = "Univariate ordinal proportional odds logistic regression model for CRS grade"
+)
+#Multivariate
+fit_mi_sub <-
+  fit.mult.impute(
+    crs_g_r ~ product + preleuka_LDH_l + preleuka_bulk_s + age + hct_score + preleuka_ALC_l,
+    fitter = lrm,
+    data = df2,
+    xtrans = mi2,
+    x = T,
+    y = T
+  )
+print(
+  fit_mi_sub,
+  digits = 2,
+  coefs = T
+)
+print(summary(fit_mi_sub,age=c(50,60)),digits = 2)
+print(anova(fit_mi_sub),digits = 2)
+plot(anova(fit_mi_sub))
+# fit_check_ord2(fit_mi_sub)
+options(prType=NULL)
+
+#Sparse ORs and 95% CIs from univariate model
+crs_d <- data.frame(summary(fit_crs_sub))
+crs_unadj <- cbind(round(crs_d[2,4],2),paste(round(crs_d[2,6],2),round(crs_d[2,7],2),sep="-"))
+colnames(crs_unadj) <- c("unadjusted OR","95% CI")
+rownames(crs_unadj) <- c("Tisacel versus axicel")
+
+#Parse p values from univariate model
+crs_unadjstats_d <- get_model_stats(fit_crs_sub)
+
+#Parse p values from multivariable model
+crs_adjstats_d <- get_model_stats(fit_mi_sub)
+
+#Parse ORs and 95% CI from multivariable model
+d <- data.frame(summary(fit_mi_sub))
+crs_adj <- cbind(round(d[12,4],2),paste(round(d[12,6],2),round(d[12,7],2),sep = "-"))
+colnames(crs_adj) <- c("adjusted OR","95% CI")
+rownames(crs_adj) <- c("Tisacel versus axicel")
+
+### Create object to merge tables later
+CRS_sub_t <-
+  cbind(crs_unadj,
+        crs_unadjstats_d$coefs[3, 5],
+        crs_adj,
+        crs_adjstats_d$coefs[3, 5])
+```
+
+### Sensitivity analysis: multivariable ordinal logistic regression model for CRS including bridging
 
 ```{r fitmultiCRS_bridge,layout="l-body-outset"}
+options(datadist='dd')
 fit_mi <-
   fit.mult.impute(
     crs_g_r ~ product + preleuka_LDH_l + preleuka_bulk_s + age + hct_score + preleuka_ALC_l + bridge,
@@ -499,9 +622,67 @@ CRS_bridge_t <-
 
 ```
 
-### Univariate ordinal logistic regression model for ICANS grade
+### Sensitivity analysis: multivariable ordinal logistic regression model for CRS including preLD ALC instead of preleukapheresis ALC
 
-```{r fitunivICANS, layout="l-body-outset"}
+```{r,layout="l-body-outset"}
+options(datadist='dd')
+fit_mi <-
+  fit.mult.impute(
+    crs_g_r ~ product + preleuka_LDH_l + preleuka_bulk_s + age + hct_score + preLD_ALC_l + bridge,
+    fitter = lrm,
+    data = df,
+    xtrans = mi,
+    x = T,
+    y = T
+  )
+options(prType="html")
+print(
+  fit_mi,
+  labels = c("tisacel", "JCAR014"),
+  digits = 2,
+  coefs = T,
+  title = "Multivariable ordinal proportional odds logistic regression model for CRS grade"
+)
+options(prType=NULL)
+
+#Sparse ORs and 95% CIs from univariate model
+crs_d <- data.frame(summary(fit_crs))
+crs_unadj <- rbind(
+  cbind(round(crs_d[2,4],2),paste(round(crs_d[2,6],2),round(crs_d[2,7],2),sep="-")),
+  cbind(round(crs_d[4,4],2),paste(round(crs_d[4,6],2),round(crs_d[4,7],2),sep="-"))
+)
+colnames(crs_unadj) <- c("unadjusted OR","95% CI")
+rownames(crs_unadj) <- c("Tisacel versus axicel","JCAR014 versus axicel")
+
+#Parse p values from univariate model
+crs_unadjstats_d <- get_model_stats(fit_crs)
+
+#Parse p values from multivariable model
+crs_adjstats_d <- get_model_stats(fit_mi)
+
+#Parse ORs and 95% CI from multivariable model
+d <- data.frame(summary(fit_mi))
+crs_adj <- rbind(
+  cbind(round(d[12,4],2),paste(round(d[12,6],2),round(d[12,7],2),sep = "-")),
+  cbind(round(d[14,4],2),paste(round(d[14,6],2),round(d[14,7],2),sep = "-"))
+)
+colnames(crs_adj) <- c("adjusted OR","95% CI")
+rownames(crs_adj) <- c("Tisacel versus axicel","JCAR014 versus axicel")
+
+### Create object to merge tables later
+CRS_preLDALC_t <-
+  cbind(crs_unadj,
+        crs_unadjstats_d$coefs[3:4, 5],
+        crs_adj,
+        crs_adjstats_d$coefs[3:4, 5])
+```
+
+
+### Univariate and multivariable proportional odds logistic regression model for ICANS grade
+
+```{r, layout="l-body-outset",results='asis',fig.width=12, fig.height=5}
+options(datadist='dd')
+#Univariate
 fit_nt <- lrm(nt_g_r ~ product,x=T,y=T,data=df)
 options(prType="html")
 print(
@@ -509,12 +690,7 @@ print(
   digits = 2,
   coefs = T
 )
-options(prType=NULL)
-```
-
-### Multivariable proportional odds logistic regression model for ICANS grade
-
-```{r fitmultiICANS, layout="l-body-outset",results='asis',fig.width=12, fig.height=5}
+#Multivariable
 fit_mi <-
   fit.mult.impute(
     nt_g_r ~ product + preleuka_LDH_l + preleuka_bulk_s + age + hct_score + preleuka_ALC_l,
@@ -524,13 +700,13 @@ fit_mi <-
     x=T,
     y=T
   )
-options(prType="html")
 print(
-  fit_mi,
+  fit_mi, 
   digits = 2,
   coefs = T,
   title = "Multivariable ordinal proportional odds logistic regression model for ICANS grade"
 )
+forestplot(summary(fit_mi),digits=2,title="OR for ICANS grade")
 print(summary(fit_mi,age=c(50,60)),digits = 2)
 print(anova(fit_mi),digits = 2)
 plot(anova(fit_mi))
@@ -570,9 +746,70 @@ NT_t <-
         round(adjstats_d$coefs[4:5, 5], 4))
 ```
 
+### Sensitivity analysis: univariate and multivariable proportional odds logistic regression model for ICANS grade excluding JCAR014 patients
+
+```{r, layout="l-body-outset",results='asis',fig.width=12, fig.height=5}
+options(datadist='dd2')
+#Univariate
+fit_nt_sub <- lrm(nt_g_r ~ product,x=T,y=T,data=df2)
+options(prType="html")
+print(
+  fit_nt_sub,
+  digits = 2,
+  coefs = T
+)
+#Multivariate
+fit_mi_sub <-
+  fit.mult.impute(
+    nt_g_r ~ product + preleuka_LDH_l + preleuka_bulk_s + age + hct_score + preleuka_ALC_l,
+    fitter = lrm,
+    data = df2,
+    xtrans = mi2,
+    x=T,
+    y=T
+  )
+print(
+  fit_mi_sub,
+  digits = 2,
+  coefs = T,
+  title = "Multivariable ordinal proportional odds logistic regression model for ICANS grade"
+)
+print(summary(fit_mi_sub,age=c(50,60)),digits = 2)
+print(anova(fit_mi_sub),digits = 2)
+plot(anova(fit_mi_sub))
+options(prType=NULL)
+
+#Parse ORs and 95%CI from univariate model
+d <- summary(fit_nt_sub)
+d <- data.frame(d)
+nt_unadj <- cbind(round(d[2,4],2),paste(round(d[2,6],2),round(d[2,7],2),sep="-"))
+colnames(nt_unadj) <- c("unadjusted OR","95% CI")
+rownames(nt_unadj) <- c("Tisacel versus axicel")
+
+#Parse p values from univariate model
+unadjstats_d <- get_model_stats(fit_nt_sub)
+
+#Parse p values from multivariable model
+adjstats_d <- get_model_stats(fit_mi_sub)
+
+#Parse ORs and 95% CI from multivariable model
+d <- data.frame(summary(fit_mi_sub))
+nt_adj <- cbind(round(d[12,4],2),paste(round(d[12,6],2),round(d[12,7],2),sep="-"))
+colnames(nt_adj) <- c("adjusted OR","95% CI")
+rownames(nt_adj) <- c("Tisacel versus axicel")
+
+#Create object to merge later
+NT_sub_t <-
+  cbind(nt_unadj,
+        round(unadjstats_d$coefs[4, 5], 4),
+        nt_adj,
+        round(adjstats_d$coefs[4, 5], 4))
+```
+
 ### Sensitivity analysis: fit multivariable model for ICANS including bridging therapy
 
 ```{r fitmultiICANS_bridge, layout="l-body-outset"}
+options(datadist='dd')
 fit_mi <-
   fit.mult.impute(
     nt_g_r ~ product + preleuka_LDH_l + preleuka_bulk_s + age + hct_score + preleuka_ALC_l + bridge,
@@ -623,22 +860,76 @@ NT_bridge_t <-
         round(adjstats_d$coefs[4:5, 5], 4))
 ```
 
-### Univariate logistic regression model for CR (best response)
+### Sensitivity analysis: fit multivariable model for ICANS including preLD ALC instead of preleukapheresis ALC
 
-```{r firunivCR}
-fit_resp <- lrm(bestCR_b ~ product,x=T,y=T,data=df)
+```{r, layout="l-body-outset"}
+options(datadist='dd')
+fit_mi <-
+  fit.mult.impute(
+    nt_g_r ~ product + preleuka_LDH_l + preleuka_bulk_s + age + hct_score + preLD_ALC_l + bridge,
+    fitter = lrm,
+    data = df,
+    xtrans = mi,
+    x=T,
+    y=T
+  )
 options(prType="html")
 print(
-  fit_resp,
+  fit_mi,
   digits = 2,
   coefs = T
 )
 options(prType=NULL)
+d <- summary(fit_nt)
+d <- data.frame(d)
+
+#Parse ORs and 95%CI from univariate model
+nt_unadj <- rbind(
+  cbind(round(d[2,4],2),paste(round(d[2,6],2),round(d[2,7],2),sep="-")),
+  cbind(round(d[4,4],2),paste(round(d[4,6],2),round(d[4,7],2),sep="-"))
+)
+colnames(nt_unadj) <- c("unadjusted OR","95% CI")
+rownames(nt_unadj) <- c("Tisacel versus axicel","JCAR014 versus axicel")
+
+#Parse p values from univariate model
+unadjstats_d <- get_model_stats(fit_nt)
+
+#Parse p values from multivariable model
+adjstats_d <- get_model_stats(fit_mi)
+
+#Parse ORs and 95% CI from multivariable model
+d <- data.frame(summary(fit_mi))
+nt_adj <- rbind(
+  cbind(round(d[12,4],2),paste(round(d[12,6],2),round(d[12,7],2),sep="-")),
+  cbind(round(d[14,4],2),paste(round(d[14,6],2),round(d[14,7],2),sep="-"))
+)
+colnames(nt_adj) <- c("adjusted OR","95% CI")
+rownames(nt_adj) <- c("Tisacel versus axicel","JCAR014 versus axicel")
+
+#Create object to merge later
+NT_preLDALC_t <-
+  cbind(nt_unadj,
+        round(unadjstats_d$coefs[4:5, 5], 4),
+        nt_adj,
+        round(adjstats_d$coefs[4:5, 5], 4))
 ```
 
-### Multivariable logistic regression model for CR (best response)
+### Univariate and multivariable logistic regression model for CR (best response by PET or CT)
 
-```{r fitmultiCR,results='asis',layout="l-body-outset",fig.width=5, fig.height=5}
+```{r,results='asis',layout="l-body-outset",fig.width=5, fig.height=5}
+options(datadist='dd')
+#Univariate
+fit_uni <- lrm(bestCR_b ~ product,x=T,y=T,data=df)
+options(prType="html")
+print(
+  fit_uni,
+  digits = 2,
+  coefs = T
+)
+fit_uniCT <- lrm(bestCR_CT_b ~ product,x=T,y=T,data=df)
+fit_uniPET <- lrm(bestCR_PET_b ~ product,x=T,y=T,data=df)
+
+#Multivariate
 fit_mi <-
   fit.mult.impute(
     bestCR_b ~ product + preleuka_LDH_l + preleuka_bulk_s + age + hct_score + preleuka_ALC_l,
@@ -653,7 +944,7 @@ print(
   fit_mi,
   digits = 2,
   coefs = T,
-  title = "Multivariable ordinal proportional odds logistic regression model for CR (best response)"
+  title = "Multivariable ordinal proportional odds logistic regression for CR (best response)"
 )
 print(summary(fit_mi,age=c(50,60),preleuka_LDH_l=c(2,2.3),preleuka_bulk_s=c(1,2),preleuka_ALC_l=c(2,2.3)),digits = 2)
 print(anova(fit_mi),digits = 2)
@@ -661,53 +952,245 @@ plot(anova(fit_mi))
 plot(calibrate(fit_mi))
 options(prType=NULL)
 
-#Parse ORs and 95% CIs from univariate model
-d <- summary(fit_resp)
-d <- data.frame(d)
-resp_unadj <- rbind(
-  cbind(round(d[2,4],2),paste(round(d[2,6],2),round(d[2,7],2),sep="-")),
-  cbind(round(d[4,4],2),paste(round(d[4,6],2),round(d[4,7],2),sep="-"))
-)
-colnames(resp_unadj) <- c("unadjusted OR","95% CI")
-rownames(resp_unadj) <- c("Tisacel versus axicel","JCAR014 versus axicel")
-
-#Parse p values from univariate model
-unadjstats_d <- get_model_stats(fit_resp)
-
-#Parse p values from multivariable model
-adjstats_d <- get_model_stats(fit_mi)
-
-#Parse ORs and 95% CI from multivariable model
-d <- data.frame(summary(fit_mi))
-resp_adj <- rbind(
-  cbind(round(d[12,4],2),paste(round(d[12,6],2),round(d[12,7],2),sep="-")),
-  cbind(round(d[14,4],2),paste(round(d[14,6],2),round(d[14,7],2),sep="-"))
-)
-colnames(resp_adj) <- c("adjusted OR","95% CI")
-rownames(resp_adj) <- c("Tisacel versus axicel","JCAR014 versus axicel")
-
-#Create object to merge later
-CR_t <- cbind(resp_unadj,unadjstats_d$coefs[2:3,5],resp_adj,adjstats_d$coefs[2:3,5])
-```
-
-### Table 3. CAR T-cell product type and outcome prediction
-
-```{r t3}
-rbind(CRS_t, NT_t, CR_t) %>%
-  addHtmlTableStyle(pos.caption = "bottom") %>%
-  htmlTable(
-    rgroup = c("CRS grade*", "ICANS grade*", "CR (Best Response)^"),
-    n.rgroup = c(2, 2, 2),
-    caption = "*From a multivariable proportional odds logistic regression model or ^logistic regression model including the following variables: CAR T-cell product type, preleukapheresis LDH, preleukapheresis largest lesion diameter, age, HCT-CI, preleukapheresis ALC. P values per the Wald test."
+#Response by CT only criteria
+fit_mi_CT <-
+  fit.mult.impute(
+    bestCR_CT_b ~ product + preleuka_LDH_l + preleuka_bulk_s + age + hct_score + preleuka_ALC_l,
+    fitter = lrm,
+    data = df,
+    xtrans = mi,
+    x=T,
+    y=T
   )
+
+#Response by PET only criteria
+fit_mi_PET <-
+  fit.mult.impute(
+    bestCR_PET_b ~ product + preleuka_LDH_l + preleuka_bulk_s + age + hct_score + preleuka_ALC_l,
+    fitter = lrm,
+    data = df,
+    xtrans = mi,
+    x=T,
+    y=T
+  )
+
+CR_t <- resp_table_sparser(fit_uni,fit_mi)
+CR_CT_t <- resp_table_sparser(fit_uniCT,fit_mi_CT)
+CR_PET_t <- resp_table_sparser(fit_uniPET,fit_mi_PET)
 ```
 
-### Table S4. Sensitivity analysis including bridging therapy in addition to the minimal adjustment set of covariates
+### Figure 3.
 
-```{r tS4}
+```{r,layout="l-body-outset",fig.width=10, fig.height=6}
+newnames <- c("Preleukapheresis LDH", "Preleukapheresis largest lesion diameter", "Age", "HCT-CI", "Preleukapheresis ALC","tisacel versus axicel","JCAR014 versus axicel")
+newhead <- c("Odds Ratio", "Lower CI", "Upper CI" )
+p <- forestplot(summary(fit_mi),digits=2,title="OR for complete response (best response by PET or CT)",row.names.y = newnames,header = newhead)
+grid.arrange(p,top = grid::textGrob("Figure 3.", x = 0, hjust = 0,gp=grid::gpar(fontface="bold")))
+#Save as .eps
+# cairo_ps("manuscript/Blood_resub2/Fig3.eps", width = 12, height = 4)
+# newnames <- c("Preleukapheresis LDH", "Preleukapheresis largest lesion diameter", "Age", "HCT-CI", "Preleukapheresis ALC","tisacel versus axicel","JCAR014 versus axicel")
+# newhead <- c("Odds Ratio", "Lower CI", "Upper CI" )
+# p <- forestplot(summary(fit_mi),digits=2,title="OR for complete response (best response by PET or CT)",row.names.y = newnames,header = newhead)
+# grid.arrange(p,top = grid::textGrob("Figure 3.", x = 0, hjust = 0,gp=grid::gpar(fontface="bold")))
+# dev.off()
+
+```
+
+
+### Sensitivity analysis: univariate and multivariable logistic regression for CR (best response) excluding JCAR014
+
+```{r,results='asis',layout="l-body-outset",fig.width=5, fig.height=5}
+options(datadist='dd2')
+#Univariate
+fit_resp_sub <- lrm(bestCR_b ~ product,x=T,y=T,data=df2)
+fit_resp_subCT <- lrm(bestCR_CT_b ~ product,x=T,y=T,data=df2)
+fit_resp_subPET <- lrm(bestCR_PET_b ~ product,x=T,y=T,data=df2)
+#Multivariable
+fit_mi_sub <-
+  fit.mult.impute(
+    bestCR_b ~ product + preleuka_LDH_l + preleuka_bulk_s + age + hct_score + preleuka_ALC_l,
+    fitter = lrm,
+    data = df2,
+    xtrans = mi2,
+    x = T,
+    y = T
+  )
+fit_mi_subCT <-
+  fit.mult.impute(
+    bestCR_CT_b ~ product + preleuka_LDH_l + preleuka_bulk_s + age + hct_score + preleuka_ALC_l,
+    fitter = lrm,
+    data = df2,
+    xtrans = mi2,
+    x = T,
+    y = T
+  )
+fit_mi_subPET <-
+  fit.mult.impute(
+    bestCR_PET_b ~ product + preleuka_LDH_l + preleuka_bulk_s + age + hct_score + preleuka_ALC_l,
+    fitter = lrm,
+    data = df2,
+    xtrans = mi2,
+    x = T,
+    y = T
+  )
+
+#Build table for resp PET or CT
+#Parse ORs and 95% CIs from univariate model
+d <- summary(fit_resp_sub)
+d <- data.frame(d)
+resp_unadj <- cbind(round(d[2,4],2),paste(round(d[2,6],2),round(d[2,7],2),sep="-"))
+colnames(resp_unadj) <- c("unadjusted OR","95% CI")
+rownames(resp_unadj) <- c("Tisacel versus axicel")
+#Parse p values from univariate model
+unadjstats_d <- get_model_stats(fit_resp_sub)
+#Parse p values from multivariable model
+adjstats_d <- get_model_stats(fit_mi_sub)
+#Parse ORs and 95% CI from multivariable model
+d <- data.frame(summary(fit_mi_sub))
+resp_adj <- cbind(round(d[12,4],2),paste(round(d[12,6],2),round(d[12,7],2),sep="-"))
+colnames(resp_adj) <- c("adjusted OR","95% CI")
+rownames(resp_adj) <- c("Tisacel versus axicel")
+#Create table object
+CR_sub_t <- cbind(resp_unadj,unadjstats_d$coefs[2,5],resp_adj,adjstats_d$coefs[2,5])
+
+#Build table for CR by CT only
+#Parse ORs and 95% CIs from univariate model
+d <- summary(fit_resp_subCT)
+d <- data.frame(d)
+resp_unadj <- cbind(round(d[2,4],2),paste(round(d[2,6],2),round(d[2,7],2),sep="-"))
+colnames(resp_unadj) <- c("unadjusted OR","95% CI")
+rownames(resp_unadj) <- c("Tisacel versus axicel")
+#Parse p values from univariate model
+unadjstats_d <- get_model_stats(fit_resp_subCT)
+#Parse p values from multivariable model
+adjstats_d <- get_model_stats(fit_mi_subCT)
+#Parse ORs and 95% CI from multivariable model
+d <- data.frame(summary(fit_mi_subCT))
+resp_adj <- cbind(round(d[12,4],2),paste(round(d[12,6],2),round(d[12,7],2),sep="-"))
+colnames(resp_adj) <- c("adjusted OR","95% CI")
+rownames(resp_adj) <- c("Tisacel versus axicel")
+
+CR_CT_sub_t <- cbind(resp_unadj,unadjstats_d$coefs[2,5],resp_adj,adjstats_d$coefs[2,5])
+
+#Build table for CR by PET only
+#Parse ORs and 95% CIs from univariate model
+d <- summary(fit_resp_subPET)
+d <- data.frame(d)
+resp_unadj <- cbind(round(d[2,4],2),paste(round(d[2,6],2),round(d[2,7],2),sep="-"))
+colnames(resp_unadj) <- c("unadjusted OR","95% CI")
+rownames(resp_unadj) <- c("Tisacel versus axicel")
+#Parse p values from univariate model
+unadjstats_d <- get_model_stats(fit_resp_subPET)
+#Parse p values from multivariable model
+adjstats_d <- get_model_stats(fit_mi_subPET)
+#Parse ORs and 95% CI from multivariable model
+d <- data.frame(summary(fit_mi_subPET))
+resp_adj <- cbind(round(d[12,4],2),paste(round(d[12,6],2),round(d[12,7],2),sep="-"))
+colnames(resp_adj) <- c("adjusted OR","95% CI")
+rownames(resp_adj) <- c("Tisacel versus axicel")
+
+CR_PET_sub_t <- cbind(resp_unadj,unadjstats_d$coefs[2,5],resp_adj,adjstats_d$coefs[2,5])
+```
+
+### Sensitivity analysis: univariate and multivariable logistic regression for CR (best response) including bridging therapy
+
+```{r}
+options(datadist='dd')
+#Univariate
+fit_resp <- lrm(bestCR_b ~ product,x=T,y=T,data=df)
+fit_resp_CT <- lrm(bestCR_CT_b ~ product,x=T,y=T,data=df)
+fit_resp_PET <- lrm(bestCR_PET_b ~ product,x=T,y=T,data=df)
+#Multivariate
 fit_mi <-
   fit.mult.impute(
     bestCR_b ~ product + preleuka_LDH_l + preleuka_bulk_s + age + hct_score + preleuka_ALC_l + bridge,
+    fitter = lrm,
+    data = df,
+    xtrans = mi,
+    x=T,
+    y=T
+  )
+fit_mi_CT <-
+  fit.mult.impute(
+    bestCR_CT_b ~ product + preleuka_LDH_l + preleuka_bulk_s + age + hct_score + preleuka_ALC_l + bridge,
+    fitter = lrm,
+    data = df,
+    xtrans = mi,
+    x=T,
+    y=T
+  )
+fit_mi_PET <-
+  fit.mult.impute(
+    bestCR_PET_b ~ product + preleuka_LDH_l + preleuka_bulk_s + age + hct_score + preleuka_ALC_l + bridge,
+    fitter = lrm,
+    data = df,
+    xtrans = mi,
+    x=T,
+    y=T
+  )
+resp_bridge_t <- resp_table_sparser(fit_resp,fit_mi)
+respCT_bridge_t <- resp_table_sparser(fit_resp_CT,fit_mi_CT)
+respPET_bridge_t <- resp_table_sparser(fit_resp_PET,fit_mi_PET)
+```
+
+### Sensitivity analysis: univariate and multivariable logistic regression for CR (best response) including preLD ALC instead of preleukapheresis ALC
+
+```{r}
+options(datadist='dd')
+#Univariate
+fit_resp <- lrm(bestCR_b ~ product,x=T,y=T,data=df)
+fit_resp_CT <- lrm(bestCR_CT_b ~ product,x=T,y=T,data=df)
+fit_resp_PET <- lrm(bestCR_PET_b ~ product,x=T,y=T,data=df)
+#Multivariate
+fit_mi <-
+  fit.mult.impute(
+    bestCR_b ~ product + preleuka_LDH_l + preleuka_bulk_s + age + hct_score + preLD_ALC_l + bridge,
+    fitter = lrm,
+    data = df,
+    xtrans = mi,
+    x=T,
+    y=T
+  )
+fit_mi_CT <-
+  fit.mult.impute(
+    bestCR_CT_b ~ product + preleuka_LDH_l + preleuka_bulk_s + age + hct_score + preLD_ALC_l + bridge,
+    fitter = lrm,
+    data = df,
+    xtrans = mi,
+    x=T,
+    y=T
+  )
+fit_mi_PET <-
+  fit.mult.impute(
+    bestCR_PET_b ~ product + preleuka_LDH_l + preleuka_bulk_s + age + hct_score + preLD_ALC_l + bridge,
+    fitter = lrm,
+    data = df,
+    xtrans = mi,
+    x=T,
+    y=T
+  )
+resp_preLDALC_t <- resp_table_sparser(fit_resp,fit_mi)
+respCT_preLDALC_t <- resp_table_sparser(fit_resp_CT,fit_mi_CT)
+respPET_preLDALC_t <- resp_table_sparser(fit_resp_PET,fit_mi_PET)
+```
+
+### Sensitivity analysis: univariate and multivariable logistic regression model for ORR (best response - CT criteria only)
+
+```{r}
+options(datadist='dd')
+fit_uni <-
+  fit.mult.impute(
+    bestresp_CT_b ~ product,
+    fitter = lrm,
+    data = df,
+    xtrans = mi,
+    x=T,
+    y=T
+  )
+print(fit_uni)
+fit_mi <-
+  fit.mult.impute(
+    bestresp_CT_b ~ product + preleuka_LDH_l + preleuka_bulk_s + age + hct_score + preleuka_ALC_l,
     fitter = lrm,
     data = df,
     xtrans = mi,
@@ -718,47 +1201,185 @@ options(prType="html")
 print(
   fit_mi,
   digits = 2,
-  coefs = T
+  coefs = T,
+  title = "Multivariable ordinal proportional odds logistic regression model for CR (best response - CT criteria only)"
 )
+print(summary(fit_mi,age=c(50,60),preleuka_LDH_l=c(2,2.3),preleuka_bulk_s=c(1,2),preleuka_ALC_l=c(2,2.3)),digits = 2)
+print(anova(fit_mi),digits = 2)
 options(prType=NULL)
-#Parse ORs and 95% CIs from univariate model
-d <- summary(fit_resp)
-str(d)
-d <- data.frame(d)
-resp_unadj <- rbind(
-  cbind(round(d[2,4],2),paste(round(d[2,6],2),round(d[2,7],2),sep="-")),
-  cbind(round(d[4,4],2),paste(round(d[4,6],2),round(d[4,7],2),sep="-"))
+
+ORR_CT_t <- resp_table_sparser(fit_uni,fit_mi)
+ORR_CT_t
+```
+
+### Sensitivity analysis: univariate and multivariable logistic regression model for ORR (best response - PET criteria only)
+
+```{r}
+options(datadist='dd')
+fit <-
+  fit.mult.impute(
+    bestresp_PET_b ~ product,
+    fitter = lrm,
+    data = df,
+    xtrans = mi,
+    x=T,
+    y=T
+  )
+print(fit)
+fit_mi <-
+  fit.mult.impute(
+    bestresp_PET_b ~ product + preleuka_LDH_l + preleuka_bulk_s + age + hct_score + preleuka_ALC_l,
+    fitter = lrm,
+    data = df,
+    xtrans = mi,
+    x=T,
+    y=T
+  )
+options(prType="html")
+print(
+  fit_mi,
+  digits = 2,
+  coefs = T,
+  title = "Multivariable ordinal proportional odds logistic regression model for CR (best response - PET criteria only)"
 )
-colnames(resp_unadj) <- c("unadjusted OR","95% CI")
-rownames(resp_unadj) <- c("Tisacel versus axicel","JCAR014 versus axicel")
+print(summary(fit_mi,age=c(50,60),preleuka_LDH_l=c(2,2.3),preleuka_bulk_s=c(1,2),preleuka_ALC_l=c(2,2.3)),digits = 2)
+print(anova(fit_mi),digits = 2)
+options(prType=NULL)
 
-#Parse p values from univariate model
-unadjstats_d <- get_model_stats(fit_resp)
+ORR_PET_t <- resp_table_sparser(fit_uni,fit_mi)
+ORR_PET_t
 
-#Parse p values from multivariable model
-adjstats_d <- get_model_stats(fit_mi)
+```
 
-#Parse ORs and 95% CI from multivariable model
-d <- data.frame(summary(fit_mi))
-resp_adj <- rbind(
-  cbind(round(d[12,4],2),paste(round(d[12,6],2),round(d[12,7],2),sep="-")),
-  cbind(round(d[14,4],2),paste(round(d[14,6],2),round(d[14,7],2),sep="-"))
-)
-colnames(resp_adj) <- c("adjusted OR","95% CI")
-rownames(resp_adj) <- c("Tisacel versus axicel","JCAR014 versus axicel")
+### Table 3. CAR T-cell product type and outcome prediction
 
-CR_bridge_t <- cbind(resp_unadj,unadjstats_d$coefs[2:3,5],resp_adj,adjstats_d$coefs[2:3,5])
-
-#Build final table
-rbind(CRS_bridge_t, NT_bridge_t, CR_bridge_t) %>%
+```{r t3}
+rbind(CRS_t, NT_t, CR_t, CR_CT_t, CR_PET_t) %>%
   addHtmlTableStyle(pos.caption = "bottom") %>%
   htmlTable(
-    rgroup = c("CRS grade*", "ICANS grade*", "CR (Best Response)^"),
-    n.rgroup = c(2, 2, 2),
+    rgroup = c(
+      "CRS grade*",
+      "ICANS grade*",
+      "CR (Best Response)^",
+      "CR (Best Response - CT criteria only)^",
+      "CR (Best Response - PET criteria only)^"
+    ),
+    n.rgroup = c(2, 2, 2, 2, 2),
+    caption = "*From a multivariable proportional odds logistic regression model or ^logistic regression model including the following variables: CAR T-cell product type, preleukapheresis LDH, preleukapheresis largest lesion diameter, age, HCT-CI, preleukapheresis ALC. P values per the Wald test."
+  )
+```
+
+### Table S4. Comparison of preleukapheresis and prelymphodepletion tumor burden and ALC
+
+```{r}
+
+#Descriptive statistics
+df %>%
+  select(patient_id,
+         `Preleukapheresis` = preleuka_LDH,
+         `Prelymphodepletion` = preLD_LDH) %>%
+  pivot_longer(
+    cols = c(`Preleukapheresis`, `Prelymphodepletion`),
+    names_to = "TP",
+    values_to = "LDH"
+  ) %>%
+  left_join(
+    .,
+    df %>%
+      select(
+        patient_id,
+        `Preleukapheresis` = preleuka_bulk_s,
+        `Prelymphodepletion` = preLD_bulk_s
+      ) %>%
+      pivot_longer(
+        cols = c(`Preleukapheresis`, `Prelymphodepletion`),
+        names_to = "TP",
+        values_to = "Largest lesion diameter"
+      ),
+    by=c("patient_id","TP")) %>%
+  left_join(
+    .,
+    df %>%
+      select(
+        patient_id,
+        `Preleukapheresis` = preleuka_ALC,
+        `Prelymphodepletion` = preLD_ALC
+      ) %>%
+      pivot_longer(
+        cols = c(`Preleukapheresis`, `Prelymphodepletion`),
+        names_to = "TP",
+        values_to = "ALC"
+      ),
+    by=c("patient_id","TP")) %>% 
+  select(-patient_id) %>% 
+  tbl_summary(
+    by="TP",
+    type = all_continuous() ~ "continuous2",
+    statistic = all_continuous() ~ c("{median} ({p25}, {p75})", 
+                                     "{min}, {max}"),
+    missing_text = "Missing data",
+    sort = all_categorical() ~ "frequency") %>%
+  add_p(all_continuous() ~ "wilcox.test",
+             simulate.p.value=TRUE) %>% 
+  bold_labels() 
+```
+
+### Table S5. Sensitivity analysis including bridging therapy in addition to the minimal adjustment set of covariates
+
+```{r tS4}
+rbind(CRS_bridge_t,
+      NT_bridge_t,
+      resp_bridge_t,
+      respCT_bridge_t,
+      respPET_bridge_t) %>%
+  addHtmlTableStyle(pos.caption = "bottom") %>%
+  htmlTable(
+    rgroup = c("CRS grade*", "ICANS grade*", "CR (Best Response)^","CR (Best Response - CT criteria only)^","CR (Best Response - PET criteria only)^"),
+    n.rgroup = c(2, 2, 2, 2, 2),
     caption = "*From a multivariable proportional odds logistic regression model or ^logistic regression model including the following variables: CAR T-cell product type, preleukapheresis LDH, preleukapheresis largest lesion diameter, age, HCT-CI, preleukapheresis ALC, bridging therapy post leukapheresis. P values per the Wald test."
   )
 ```
 
+### Table S6. Sensitivity analysis excluding JCAR014 patients
+
+```{r}
+rbind(CRS_sub_t, NT_sub_t, CR_sub_t, CR_CT_sub_t, CR_PET_sub_t) %>%
+  addHtmlTableStyle(pos.caption = "bottom") %>%
+  htmlTable(
+    rgroup = c(
+      "CRS grade*",
+      "ICANS grade*",
+      "CR (Best Response)^",
+      "CR (Best Response - CT criteria only)^",
+      "CR (Best Response - PET criteria only)^"
+    ),
+    n.rgroup = c(1, 1, 1, 1, 1),
+    caption = "*From a multivariable proportional odds logistic regression model or ^logistic regression model including the following variables: CAR T-cell product type, preleukapheresis LDH, preleukapheresis largest lesion diameter, age, HCT-CI, preleukapheresis ALC, bridging therapy post leukapheresis. P values per the Wald test."
+  )
+
+```
+
+### Table S7. Sensitivity analysis including prelymphodepletion ALC instead of preleukapheresis ALC
+
+```{r}
+rbind(CRS_preLDALC_t,
+      NT_preLDALC_t,
+      resp_preLDALC_t,
+      respCT_preLDALC_t,
+      respPET_preLDALC_t) %>%
+  addHtmlTableStyle(pos.caption = "bottom") %>%
+  htmlTable(
+    rgroup = c(
+      "CRS grade*",
+      "ICANS grade*",
+      "CR (Best Response)^",
+      "CR (Best Response - CT criteria only)^",
+      "CR (Best Response - PET criteria only)^"
+    ),
+    n.rgroup = c(2, 2, 2, 2, 2),
+    caption = "*From a multivariable proportional odds logistic regression model or ^logistic regression model including the following variables: CAR T-cell product type, preleukapheresis LDH, preleukapheresis largest lesion diameter, age, HCT-CI, prelymphodepletion ALC, bridging therapy post leukapheresis. P values per the Wald test."
+  )
+```
 ### Multivariable ordinal logistic regression model for CRS grade including interaction effects
 
 ```{r effmodCRS,results='asis',layout="l-body-outset",fig.width=8, fig.height=6}
