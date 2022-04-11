@@ -1,7 +1,7 @@
 ---
 title: "Reproducible supplement"
 description: |
-  Reproducible supplement to recreate all tables and figures using R for manuscript: "Gauthier J et al. Comparative analysis of safety and efficacy across three CD19 CAR T-cell products in aggressive B-NHL"
+  Reproducible supplement to recreate all tables and figures using R for manuscript: "Gauthier J et al. Impact of CD19 CAR T-cell product type on outcomes in relapsed or refractory aggressive B-NHL"
 author:
   - name: Jordan Gauthier, MD
     affiliation: Fred Hutch, University of Washington
