@@ -14,6 +14,8 @@ output:
     self_contained: false
 ---
 
+
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 library(openxlsx)
@@ -946,7 +948,7 @@ print(
   coefs = T,
   title = "Multivariable ordinal proportional odds logistic regression for CR (best response)"
 )
-print(summary(fit_mi,age=c(50,60),preleuka_LDH_l=c(2,2.3),preleuka_bulk_s=c(1,2),preleuka_ALC_l=c(2,2.3)),digits = 2)
+print(summary(fit_mi),digits = 2)
 print(anova(fit_mi),digits = 2)
 plot(anova(fit_mi))
 plot(calibrate(fit_mi))
@@ -984,7 +986,7 @@ CR_PET_t <- resp_table_sparser(fit_uniPET,fit_mi_PET)
 ```{r,layout="l-body-outset",fig.width=10, fig.height=6}
 newnames <- c("Preleukapheresis LDH", "Preleukapheresis largest lesion diameter", "Age", "HCT-CI", "Preleukapheresis ALC","tisacel versus axicel","JCAR014 versus axicel")
 newhead <- c("Odds Ratio", "Lower CI", "Upper CI" )
-forestplot(summary(fit_mi),digits=2,title="OR for complete response (best response by PET or CT)",row.names.y = newnames,header = newhead)
+forestplot(summary(fit_mi,age=c(50,60),preleuka_LDH_l=c(2,2.3),preleuka_bulk_s=c(1,2),preleuka_ALC_l=c(2,2.3)),digits=2,title="OR for complete response (best response by PET or CT)",row.names.y = newnames,header = newhead)
 
 #Save as .eps
 # cairo_ps("manuscript/Blood_resub2/Fig3.eps", width = 12, height = 4)
